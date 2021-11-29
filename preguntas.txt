@@ -1,0 +1,6 @@
+¿Solución a titilado de luces que se generan en el fondo?
+
+¿Esferas arriba de cilindro que muestren como si fueran las lamparas?
+
+¿Hay forma de hacer 'vidrio' o similar para que los efectos se mantengan fuera y no pasen cuando en tunel?
+
