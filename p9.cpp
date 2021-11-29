@@ -34,7 +34,6 @@
 #define SIGN_HEIGHT 3
 #define QUAD_DENSITY 15 
 
-
 // Lighting
 #define LAMP_HEIGHT ROAD_TUNNEL_HEIGHT
 #define DISTANCE_BETWEEN_LAMPS ROAD_LENGTH / 4
@@ -63,6 +62,8 @@ static float velocity[3] = { 0.0, 1.0, 1.0 };
 static float position[3] = { 0.0, 1.0, 0.0 };
 static float turn_angle = 0;
 
+// Other
+static int lamps[] = { GL_LIGHT2, GL_LIGHT3, GL_LIGHT4, GL_LIGHT5 };
 /***************************** HELPER FUNCTIONS ******************************/
 bool outsideTunnel(int z) {
     return z != 0 && z % (DISTANCE_BETWEEN_TUNNELS + TUNNEL_LENGTH) < DISTANCE_BETWEEN_TUNNELS;
@@ -99,7 +100,7 @@ void drawCylinder(GLfloat* pos, GLfloat radius, GLfloat height, GLfloat slices) 
 
 // Configures lighting, adds geometry to lighting and controls where signs appear 
 void configureRoad() {
-    // TODO: sign lamp on mid
+    // TODO: fix spheres with no light
     // TODO: fix streetlamp flicker on furthest lamps
     static float SL_z[NUM_STREETLAMPS] = { DISTANCE_BETWEEN_LAMPS, 
                                            2 * DISTANCE_BETWEEN_LAMPS, 
@@ -199,17 +200,16 @@ void configureRoad() {
             directions_SL[i][X] = 0.0; // so they point straight down
         }
     }
-
+    
     // Lamps themselves
-    glLightfv(GL_LIGHT2, GL_SPOT_DIRECTION, directions_SL[0]);
-    glLightfv(GL_LIGHT3, GL_SPOT_DIRECTION, directions_SL[1]);
-    glLightfv(GL_LIGHT4, GL_SPOT_DIRECTION, directions_SL[2]);
-    glLightfv(GL_LIGHT5, GL_SPOT_DIRECTION, directions_SL[3]);
-
-	glLightfv(GL_LIGHT2, GL_POSITION, positions_SL[0]);
-	glLightfv(GL_LIGHT3, GL_POSITION, positions_SL[1]);
-	glLightfv(GL_LIGHT4, GL_POSITION, positions_SL[2]);
-	glLightfv(GL_LIGHT5, GL_POSITION, positions_SL[3]);
+    for (int i = 0; i < NUM_STREETLAMPS; i++) {
+        glLightfv(lamps[i], GL_SPOT_DIRECTION, directions_SL[i]);
+	    glLightfv(lamps[i], GL_POSITION, positions_SL[i]);
+        glPushMatrix();
+        glTranslatef(positions_SL[i][X], positions_SL[i][Y], positions_SL[i][Z]);
+        glutWireSphere(0.4, 10, 10);
+        glPopMatrix();
+    }
 }
 
 void configureMoonlight() {
@@ -335,7 +335,7 @@ void setupLighting() {
 
     // Streetlamps
     GLfloat A[] = {0.7, 0.7, 0.7, 1.0};
-    GLfloat D[] = {0.5, 0.5, 0.5, 1.0};
+    GLfloat D[] = {0.8, 0.8, 0.8, 1.0};
     GLfloat S[] = {0.3, 0.3, 0.3, 1.0};
     cutoff = 90.0; // degrees
     exponent = 3.0;
