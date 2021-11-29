@@ -93,43 +93,57 @@ void drawCylinder(GLfloat* pos, GLfloat radius, GLfloat height, GLfloat slices) 
         drawRectangle(v3, v2, v0, v1);
     }
 }
- /*
 void configureStreetlamps() {
-    // TODO: fix streetlamp flicker
+    static float SL_z[NUM_STREETLAMPS] = { DISTANCE_BETWEEN_LAMPS, 2 * DISTANCE_BETWEEN_LAMPS, 
+                        3 * DISTANCE_BETWEEN_LAMPS, 4 * DISTANCE_BETWEEN_LAMPS}; 
+    static int first_SL = 0;
+
+    // TODO: add some signs every 20 to 50 lamps
+    // TODO: fix streetlamp flicker on furthest lamps
+    if (position[Z] > (SL_z[first_SL] + VEHICLE_PASSING_LAMP_DISTANCE)) {
+        SL_z[first_SL] += NUM_STREETLAMPS * DISTANCE_BETWEEN_LAMPS;
+        first_SL = (first_SL + 1) % 4;
+    }
+
+    GLfloat positions_SL[NUM_STREETLAMPS][4] = {
+        { road_tracing(SL_z[0]), LAMP_HEIGHT, SL_z[0], 1.0 },
+        { road_tracing(SL_z[1]), LAMP_HEIGHT, SL_z[1], 1.0 },
+        { road_tracing(SL_z[2]), LAMP_HEIGHT, SL_z[2], 1.0 },
+        { road_tracing(SL_z[3]), LAMP_HEIGHT, SL_z[3], 1.0 }
+    };
+
+
+    // Geometric structures holding lamps
+    for (int i = 0; i < NUM_STREETLAMPS; i++) {
+        if (outsideTunnel(SL_z[i])) {
+            if (i % 2 == 0) {
+                drawCylinder(new GLfloat[] {positions_SL[i][X]+ROAD_WIDTH, 0, positions_SL[i][Z]}, 
+                        LAMP_CYLINDER_RADIUS,
+                        LAMP_HEIGHT, 
+                        20);
+            }
+            else {
+                drawCylinder(new GLfloat[] {positions_SL[i][X]-ROAD_WIDTH, 0, positions_SL[i][Z]},
+                        LAMP_CYLINDER_RADIUS,
+                        LAMP_HEIGHT,
+                        20);
+            }
+        }
+    }
+
+    // Lamps themselves
     GLfloat SL_direction[] = { 0.0, -1.0, 0.0 }; 
-    
+
     glLightfv(GL_LIGHT2, GL_SPOT_DIRECTION, SL_direction);
     glLightfv(GL_LIGHT3, GL_SPOT_DIRECTION, SL_direction);
     glLightfv(GL_LIGHT4, GL_SPOT_DIRECTION, SL_direction);
     glLightfv(GL_LIGHT5, GL_SPOT_DIRECTION, SL_direction);
-    
-    static float i1 = DISTANCE_BETWEEN_LAMPS; 
-    static float i2 = i1 + DISTANCE_BETWEEN_LAMPS; 
-    static float i3 = i2 + DISTANCE_BETWEEN_LAMPS; 
-    static float i4 = i3 + DISTANCE_BETWEEN_LAMPS; 
 
-    if (position[Z] > (i1 + VEHICLE_PASSING_LAMP_DISTANCE)) {
-        i1 += DISTANCE_BETWEEN_LAMPS;
-        i2 += DISTANCE_BETWEEN_LAMPS;
-        i3 += DISTANCE_BETWEEN_LAMPS;
-        i4 += DISTANCE_BETWEEN_LAMPS;
-    }
-
-    GLfloat position_SL1[] = { road_tracing(i1), LAMP_HEIGHT, i1, 1.0 };
-    GLfloat position_SL2[] = { road_tracing(i2), LAMP_HEIGHT, i2, 1.0 };
-    GLfloat position_SL3[] = { road_tracing(i3), LAMP_HEIGHT, i3, 1.0 };
-    GLfloat position_SL4[] = { road_tracing(i4), LAMP_HEIGHT, i4, 1.0 };
-    
-    // Geometric structures holding lamps
-    // TODO: draw lamp structures, and 1 sign every 20 to 50 lamps, only if not in tunnel
-     
-
-	glLightfv(GL_LIGHT2, GL_POSITION, position_SL1);
-	glLightfv(GL_LIGHT3, GL_POSITION, position_SL2);
-	glLightfv(GL_LIGHT4, GL_POSITION, position_SL3);
-	glLightfv(GL_LIGHT5, GL_POSITION, position_SL4);
+	glLightfv(GL_LIGHT2, GL_POSITION, positions_SL[0]);
+	glLightfv(GL_LIGHT3, GL_POSITION, positions_SL[1]);
+	glLightfv(GL_LIGHT4, GL_POSITION, positions_SL[2]);
+	glLightfv(GL_LIGHT5, GL_POSITION, positions_SL[3]);
 }
-*/
 
 void configureMoonlight() {
     GLfloat ML_position[] = { 0.0, 10.0, 0.0, 0.0 };
@@ -167,7 +181,6 @@ void displayRoad(int length) {
     float BE_tunnel_wall = 4;
     float BE_tunnel_ceil = 2;
 
-    bool in_tunnel = false;
     for (int i = position[Z] - TUNNEL_LENGTH; i < position[Z] + length; i++) {
     
         glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, D_road);
@@ -213,10 +226,11 @@ void displayRoad(int length) {
                 drawRectangle(v3, v2, v2_y, v3_y);
             } 
             // Other half is semitransparent to show weather (is this even possible)
+            /*
             else {
                 // TODO  
-                in_tunnel = !!in_tunnel;
             }
+            */
 
             // Always draw ceiling
             glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, BE_tunnel_ceil);
@@ -224,59 +238,7 @@ void displayRoad(int length) {
         }
 	}
 
-    // configureStreetlamps();
-    
-    // Streetlamps
-    static float SL_z[NUM_STREETLAMPS] = { DISTANCE_BETWEEN_LAMPS, 2 * DISTANCE_BETWEEN_LAMPS, 
-                        3 * DISTANCE_BETWEEN_LAMPS, 4 * DISTANCE_BETWEEN_LAMPS}; 
-    static int first_SL = 0;
-
-    // TODO: fix streetlamp flicker on furthest lamps
-    if (position[Z] > (SL_z[first_SL] + VEHICLE_PASSING_LAMP_DISTANCE)) {
-        SL_z[first_SL] += NUM_STREETLAMPS * DISTANCE_BETWEEN_LAMPS;
-        first_SL = (first_SL + 1) % 4;
-    }
-
-    GLfloat positions_SL[NUM_STREETLAMPS][4] = {
-        { road_tracing(SL_z[0]), LAMP_HEIGHT, SL_z[0], 1.0 },
-        { road_tracing(SL_z[1]), LAMP_HEIGHT, SL_z[1], 1.0 },
-        { road_tracing(SL_z[2]), LAMP_HEIGHT, SL_z[2], 1.0 },
-        { road_tracing(SL_z[3]), LAMP_HEIGHT, SL_z[3], 1.0 }
-    };
-
-
-    // Geometric structures holding lamps
-    // TODO: draw lamp structures, and 1 sign every 20 to 50 lamps, only if not in tunnel
-    for (int i = 0; i < NUM_STREETLAMPS; i++) {
-        if (outsideTunnel(SL_z[i])) {
-            if (i % 2 == 0) {
-                drawCylinder(new GLfloat[] {positions_SL[i][X]+ROAD_WIDTH, 0, positions_SL[i][Z]}, 
-                        LAMP_CYLINDER_RADIUS,
-                        LAMP_HEIGHT, 
-                        20);
-            }
-            else {
-                drawCylinder(new GLfloat[] {positions_SL[i][X]-ROAD_WIDTH, 0, positions_SL[i][Z]},
-                        LAMP_CYLINDER_RADIUS,
-                        LAMP_HEIGHT,
-                        20);
-            }
-        }
-    }
-
-    // Lamps themselves
-    GLfloat SL_direction[] = { 0.0, -1.0, 0.0 }; 
-
-    glLightfv(GL_LIGHT2, GL_SPOT_DIRECTION, SL_direction);
-    glLightfv(GL_LIGHT3, GL_SPOT_DIRECTION, SL_direction);
-    glLightfv(GL_LIGHT4, GL_SPOT_DIRECTION, SL_direction);
-    glLightfv(GL_LIGHT5, GL_SPOT_DIRECTION, SL_direction);
-
-	glLightfv(GL_LIGHT2, GL_POSITION, positions_SL[0]);
-	glLightfv(GL_LIGHT3, GL_POSITION, positions_SL[1]);
-	glLightfv(GL_LIGHT4, GL_POSITION, positions_SL[2]);
-	glLightfv(GL_LIGHT5, GL_POSITION, positions_SL[3]);
-    
+    configureStreetlamps();
 }
 
 
