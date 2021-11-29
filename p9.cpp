@@ -94,50 +94,55 @@ void drawCylinder(GLfloat* pos, GLfloat radius, GLfloat height, GLfloat slices) 
     }
 }
 void configureStreetlamps() {
-    static float SL_z[NUM_STREETLAMPS] = { DISTANCE_BETWEEN_LAMPS, 2 * DISTANCE_BETWEEN_LAMPS, 
-                        3 * DISTANCE_BETWEEN_LAMPS, 4 * DISTANCE_BETWEEN_LAMPS}; 
-    static int first_SL = 0;
-
     // TODO: add some signs every 20 to 50 lamps
     // TODO: fix streetlamp flicker on furthest lamps
+    static float SL_z[NUM_STREETLAMPS] = { DISTANCE_BETWEEN_LAMPS, 
+                                           2 * DISTANCE_BETWEEN_LAMPS, 
+                                           3 * DISTANCE_BETWEEN_LAMPS,
+                                           4 * DISTANCE_BETWEEN_LAMPS
+                                    }; 
+    static int first_SL = 0;
+
+    // Rotate lamp positions to render next lamp in correct position
     if (position[Z] > (SL_z[first_SL] + VEHICLE_PASSING_LAMP_DISTANCE)) {
         SL_z[first_SL] += NUM_STREETLAMPS * DISTANCE_BETWEEN_LAMPS;
         first_SL = (first_SL + 1) % 4;
     }
-
+   
+    // By default we assume the lamps are not in a tunnel 
     GLfloat positions_SL[NUM_STREETLAMPS][4] = {
-        { road_tracing(SL_z[0]), LAMP_HEIGHT, SL_z[0], 1.0 },
-        { road_tracing(SL_z[1]), LAMP_HEIGHT, SL_z[1], 1.0 },
-        { road_tracing(SL_z[2]), LAMP_HEIGHT, SL_z[2], 1.0 },
-        { road_tracing(SL_z[3]), LAMP_HEIGHT, SL_z[3], 1.0 }
+        { road_tracing(SL_z[0]) + ROAD_WIDTH, LAMP_HEIGHT, SL_z[0], 1.0 },
+        { road_tracing(SL_z[1]) - ROAD_WIDTH, LAMP_HEIGHT, SL_z[1], 1.0 },
+        { road_tracing(SL_z[2]) + ROAD_WIDTH, LAMP_HEIGHT, SL_z[2], 1.0 },
+        { road_tracing(SL_z[3]) - ROAD_WIDTH, LAMP_HEIGHT, SL_z[3], 1.0 }
     };
-
+    
+    GLfloat directions_SL[NUM_STREETLAMPS][3] = {
+        { -1.0, -1.0, 0.0 }, // left one directs light to the right
+        {  1.0, -1.0, 0.0 }, // right one directs light to the left
+        { -1.0, -1.0, 0.0 },  
+        {  1.0, -1.0, 0.0 }
+    };
 
     // Geometric structures holding lamps
     for (int i = 0; i < NUM_STREETLAMPS; i++) {
         if (outsideTunnel(SL_z[i])) {
-            if (i % 2 == 0) {
-                drawCylinder(new GLfloat[] {positions_SL[i][X]+ROAD_WIDTH, 0, positions_SL[i][Z]}, 
+            drawCylinder(new GLfloat[] {positions_SL[i][X], 0, positions_SL[i][Z]}, 
                         LAMP_CYLINDER_RADIUS,
                         LAMP_HEIGHT, 
                         20);
-            }
-            else {
-                drawCylinder(new GLfloat[] {positions_SL[i][X]-ROAD_WIDTH, 0, positions_SL[i][Z]},
-                        LAMP_CYLINDER_RADIUS,
-                        LAMP_HEIGHT,
-                        20);
-            }
+        }
+        else {
+            positions_SL[i][X] = road_tracing(SL_z[i]); // in tunnel -> lamps on middle
+            directions_SL[i][X] = 0.0; // so they point straight down
         }
     }
 
     // Lamps themselves
-    GLfloat SL_direction[] = { 0.0, -1.0, 0.0 }; 
-
-    glLightfv(GL_LIGHT2, GL_SPOT_DIRECTION, SL_direction);
-    glLightfv(GL_LIGHT3, GL_SPOT_DIRECTION, SL_direction);
-    glLightfv(GL_LIGHT4, GL_SPOT_DIRECTION, SL_direction);
-    glLightfv(GL_LIGHT5, GL_SPOT_DIRECTION, SL_direction);
+    glLightfv(GL_LIGHT2, GL_SPOT_DIRECTION, directions_SL[0]);
+    glLightfv(GL_LIGHT3, GL_SPOT_DIRECTION, directions_SL[1]);
+    glLightfv(GL_LIGHT4, GL_SPOT_DIRECTION, directions_SL[2]);
+    glLightfv(GL_LIGHT5, GL_SPOT_DIRECTION, directions_SL[3]);
 
 	glLightfv(GL_LIGHT2, GL_POSITION, positions_SL[0]);
 	glLightfv(GL_LIGHT3, GL_POSITION, positions_SL[1]);
