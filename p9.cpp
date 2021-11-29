@@ -71,6 +71,31 @@ float road_tracing(float u) {
     return ROAD_AMPLITUDE + ROAD_AMPLITUDE * sin(2 * M_PI * (u - ROAD_PERIOD / 4) / ROAD_PERIOD);
 }
 
+// Draw a rectangle assuming parameters in counterclockwise order
+void drawRectangle(GLfloat* v0, GLfloat* v1, GLfloat* v2, GLfloat* v3) {
+    glBegin(GL_TRIANGLE_STRIP);
+       glVertex3f(v0[0], v0[1], v0[2]); 
+       glVertex3f(v1[0], v1[1], v1[2]); 
+       glVertex3f(v3[0], v3[1], v3[2]); 
+       glVertex3f(v2[0], v2[1], v2[2]); 
+    glEnd();
+}
+
+void drawCylinder(GLfloat* pos, GLfloat radius, GLfloat height, GLfloat slices) {
+    GLfloat h0, h1, x, z;
+    
+    for (int i = 0; i < slices; i++) {
+        h0 = ((float)i)     * 2.0 * M_PI / slices;
+        h1 = ((float)i + 1) * 2.0 * M_PI / slices;
+        
+        GLfloat v0[3] = { pos[0] + radius * cos(h0), pos[1], pos[2] + radius * sin(h0) }; // bottom left
+        GLfloat v1[3] = { pos[0] + radius * cos(h1), pos[1], pos[2] + radius * sin(h1) }; // bottom right
+        GLfloat v2[3] = { pos[0] + radius * cos(h0), pos[1] + height, pos[2] + radius * sin(h0) }; // top left
+        GLfloat v3[3] = { pos[0] + radius * cos(h1), pos[1] + height, pos[2] + radius * sin(h1) }; // top right
+        drawRectangle(v3, v2, v0, v1);
+    }
+}
+ /*
 void configureStreetlamps() {
     // TODO: fix streetlamp flicker
     GLfloat SL_direction[] = { 0.0, -1.0, 0.0 }; 
@@ -106,6 +131,7 @@ void configureStreetlamps() {
 	glLightfv(GL_LIGHT4, GL_POSITION, position_SL3);
 	glLightfv(GL_LIGHT5, GL_POSITION, position_SL4);
 }
+*/
 
 void configureMoonlight() {
     GLfloat ML_position[] = { 0.0, 10.0, 0.0, 0.0 };
@@ -127,47 +153,47 @@ void showControls() {
     std::cout << "\tESC: exit." << endl;
 }
 
-void drawBorder(GLfloat* v0, GLfloat* v1, GLfloat* v2, GLfloat* v3) {
-    glBegin(GL_QUADS);
-       glVertex3f(v0[0], v0[1], v0[2]); 
-       glVertex3f(v1[0], v1[1], v1[2]); 
-       glVertex3f(v2[0], v2[1], v2[2]); 
-       glVertex3f(v3[0], v3[1], v3[2]); 
-    glEnd();
-}
 
 void displayRoad(int length) {
     glPolygonMode(GL_FRONT_AND_BACK, draw_mode);
 
     // Material configuration
-    GLfloat D[] = { 0.8, 0.8, 0.8 };
-    GLfloat S[] = { 0.3, 0.3, 0.3 };
-    float brightness_exponent = 2;
+    GLfloat D_road[] = { 0.8, 0.8, 0.8 };
+    GLfloat S_road[] = { 0.3, 0.3, 0.3 };
+    float BE_road = 2;
 
-    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, D);
-    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, S);
-    glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, brightness_exponent);
+    float BE_border = 5;
+
+    GLfloat D_tunnel[] = { 0.6, 0.6, 0.6 };
+    GLfloat S_tunnel[] = { 0.5, 0.5, 0.5 };
+    float BE_tunnel_wall = 4;
+    float BE_tunnel_ceil = 2;
 
     bool in_tunnel = false;
     for (int i = position[Z] - TUNNEL_LENGTH; i < position[Z] + length; i++) {
-        // Quad vertexes
+    
+        glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, D_road);
+        glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, S_road);
+        glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, BE_road);
+
+        // Road
 		GLfloat v3[3] = { road_tracing(i + 1) + ROAD_WIDTH, 0, (float)i + 1 }; // next left
         GLfloat v0[3] = { road_tracing(i + 1) - ROAD_WIDTH, 0, (float)i + 1 }; // next right
         GLfloat v1[3] = { road_tracing(i    ) - ROAD_WIDTH, 0, (float)i }; // last right
         GLfloat v2[3] = { road_tracing(i    ) + ROAD_WIDTH, 0, (float)i }; // last left
-	    
-        // Road quad
         quad(v0, v3, v2, v1, QUAD_DENSITY, QUAD_DENSITY);
         
+        glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, BE_border);
+
         // Left road border
         GLfloat v0_y[3] = { road_tracing(i + 1) - ROAD_WIDTH, ROAD_BORDER_HEIGHT, (float)i + 1 };
         GLfloat v1_y[3] = { road_tracing(i    ) - ROAD_WIDTH, ROAD_BORDER_HEIGHT, (float)i };
-        drawBorder(v0, v1, v1_y, v0_y);
+        drawRectangle(v0, v1, v1_y, v0_y);
 
         // Right road border
         GLfloat v3_y[3] = { road_tracing(i + 1) + ROAD_WIDTH, ROAD_BORDER_HEIGHT, (float)i + 1 };
         GLfloat v2_y[3] = { road_tracing(i    ) + ROAD_WIDTH, ROAD_BORDER_HEIGHT, (float)i };
-        drawBorder(v3, v2, v2_y, v3_y);
+        drawRectangle(v3, v2, v2_y, v3_y);
         
         // Checking if tunnel should be displayed
         if (tunnelExit(i) && in_tunnel) {
@@ -177,8 +203,12 @@ void displayRoad(int length) {
             in_tunnel = true;
         }
 
-        // Tunnel display
+        // Tunnel
         if (in_tunnel) {
+            glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, D_tunnel);
+            glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, S_tunnel);
+            glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, BE_tunnel_wall);
+
             // Right wall
             GLfloat v0_y[3] = { road_tracing(i + 1) - ROAD_WIDTH, ROAD_TUNNEL_HEIGHT, (float)i + 1 };
             GLfloat v1_y[3] = { road_tracing(i    ) - ROAD_WIDTH, ROAD_TUNNEL_HEIGHT, (float)i };
@@ -189,8 +219,8 @@ void displayRoad(int length) {
 
             // Only draw walls half the time
             if (i % 8 < 4) {
-                drawBorder(v0, v1, v1_y, v0_y);
-                drawBorder(v3, v2, v2_y, v3_y);
+                drawRectangle(v0, v1, v1_y, v0_y);
+                drawRectangle(v3, v2, v2_y, v3_y);
             } 
             // Other half is semitransparent to show weather (is this even possible)
             else {
@@ -199,11 +229,39 @@ void displayRoad(int length) {
             }
 
             // Always draw ceiling
-            drawBorder(v0_y, v1_y, v2_y, v3_y);
+            glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, BE_tunnel_ceil);
+            drawRectangle(v0_y, v1_y, v2_y, v3_y);
         }
 	} 
 
-    configureStreetlamps();
+    static float i1 = DISTANCE_BETWEEN_LAMPS; 
+    static float i2 = i1 + DISTANCE_BETWEEN_LAMPS; 
+    static float i3 = i2 + DISTANCE_BETWEEN_LAMPS; 
+    static float i4 = i3 + DISTANCE_BETWEEN_LAMPS; 
+
+    // TODO: fix streetlamp flicker on furthest lamps
+    if (position[Z] > (i1 + VEHICLE_PASSING_LAMP_DISTANCE)) {
+        i1 += DISTANCE_BETWEEN_LAMPS;
+        i2 += DISTANCE_BETWEEN_LAMPS;
+        i3 += DISTANCE_BETWEEN_LAMPS;
+        i4 += DISTANCE_BETWEEN_LAMPS;
+    }
+
+    GLfloat position_SL1[] = { road_tracing(i1), LAMP_HEIGHT, i1, 1.0 };
+    GLfloat position_SL2[] = { road_tracing(i2), LAMP_HEIGHT, i2, 1.0 };
+    GLfloat position_SL3[] = { road_tracing(i3), LAMP_HEIGHT, i3, 1.0 };
+    GLfloat position_SL4[] = { road_tracing(i4), LAMP_HEIGHT, i4, 1.0 };
+    
+    // Geometric structures holding lamps
+    // TODO: draw lamp structures, and 1 sign every 20 to 50 lamps, only if not in tunnel
+    // drawCylinder(new GLfloat[] {position_SL1[0], 0, position_SL1[2]}, 0.3, 4, 20);
+
+
+	glLightfv(GL_LIGHT2, GL_POSITION, position_SL1);
+	glLightfv(GL_LIGHT3, GL_POSITION, position_SL2);
+	glLightfv(GL_LIGHT4, GL_POSITION, position_SL3);
+	glLightfv(GL_LIGHT5, GL_POSITION, position_SL4);
+    
 }
 
 
@@ -232,30 +290,35 @@ void setupLighting() {
     glLightf(GL_LIGHT1, GL_SPOT_EXPONENT, exponent);
 
     // Streetlamps
+    GLfloat SL_direction[] = { 0.0, -1.0, 0.0 }; 
     GLfloat A[] = {0.3, 0.3, 0.3, 1.0};
     GLfloat D[] = {0.5, 0.5, 0.2, 1.0};
     GLfloat S[] = {0.3, 0.3, 0.3, 1.0};
     cutoff = 90.0; // degrees
     exponent = 3.0;
 
+    glLightfv(GL_LIGHT2, GL_SPOT_DIRECTION, SL_direction);
     glLightfv(GL_LIGHT2, GL_AMBIENT, A);
     glLightfv(GL_LIGHT2, GL_DIFFUSE, D);
     glLightfv(GL_LIGHT2, GL_SPECULAR, S);
     glLightf(GL_LIGHT2, GL_SPOT_CUTOFF, cutoff);
     glLightf(GL_LIGHT2, GL_SPOT_EXPONENT, exponent);
 
+    glLightfv(GL_LIGHT3, GL_SPOT_DIRECTION, SL_direction);
     glLightfv(GL_LIGHT3, GL_AMBIENT, A);
     glLightfv(GL_LIGHT3, GL_DIFFUSE, D);
     glLightfv(GL_LIGHT3, GL_SPECULAR, S);
     glLightf(GL_LIGHT3, GL_SPOT_CUTOFF, cutoff);
     glLightf(GL_LIGHT3, GL_SPOT_EXPONENT, exponent);
    
+    glLightfv(GL_LIGHT4, GL_SPOT_DIRECTION, SL_direction);
     glLightfv(GL_LIGHT4, GL_AMBIENT, A);
     glLightfv(GL_LIGHT4, GL_DIFFUSE, D);
     glLightfv(GL_LIGHT4, GL_SPECULAR, S);
     glLightf(GL_LIGHT4, GL_SPOT_CUTOFF, cutoff);
     glLightf(GL_LIGHT4, GL_SPOT_EXPONENT, exponent);
 
+    glLightfv(GL_LIGHT5, GL_SPOT_DIRECTION, SL_direction);
     glLightfv(GL_LIGHT5, GL_AMBIENT, A);
     glLightfv(GL_LIGHT5, GL_DIFFUSE, D);
     glLightfv(GL_LIGHT5, GL_SPECULAR, S);
