@@ -68,6 +68,22 @@ static float turn_angle = 0;
 static int lamps[] = { GL_LIGHT2, GL_LIGHT3, GL_LIGHT4, GL_LIGHT5 };
 
 /***************************** HELPER FUNCTIONS ******************************/
+
+void configureScene() {
+	glClearColor(0, 0, 0, 1);
+
+    glEnable(GL_DEPTH_TEST);
+
+    glEnable(GL_LIGHTING);
+
+    glEnable(GL_LIGHT0);
+    glEnable(GL_LIGHT1);
+    glEnable(GL_LIGHT2);
+    glEnable(GL_LIGHT3);
+    glEnable(GL_LIGHT4);
+    glEnable(GL_LIGHT5);
+}
+
 bool outsideTunnel(int z) {
     return z != 0 && z % (DISTANCE_BETWEEN_TUNNELS + TUNNEL_LENGTH) < DISTANCE_BETWEEN_TUNNELS;
 }
@@ -364,20 +380,10 @@ void setupLighting() {
 void init() {
     showControls();
 
-    // Enabling / disabling of elements / settings
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
-    glEnable(GL_LIGHT1);
-    glEnable(GL_LIGHT2);
-    glEnable(GL_LIGHT3);
-    glEnable(GL_LIGHT4);
-    glEnable(GL_LIGHT5);
+    configureScene();
     
-    // Set-up of elements
     setupLighting();
 
-	glClearColor(0, 0, 0, 1);
 
     // Mode initialization
     draw_mode = GL_FILL;
