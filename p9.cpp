@@ -14,7 +14,7 @@
 
 // General game behaviour
 #define FPS 60
-#define SPEED_INCREMENT 0.2
+#define SPEED_INCREMENT 0.4
 #define MAX_SPEED 50
 #define ANGLE_INCREMENT 0.5
 #define MAX_ANGLE 45
@@ -29,10 +29,10 @@
 #define DISTANCE_BETWEEN_TUNNELS 800
 #define TUNNEL_LENGTH 400 
 #define NUM_STREETLAMPS 4
-#define LAMP_CYLINDER_RADIUS 0.3f
+#define LAMP_CYLINDER_RADIUS 0.2f
 #define NUM_LAMPS_BETWEEN_SIGNS 5
 #define SIGN_HEIGHT 3
-#define QUAD_DENSITY 15 
+#define QUAD_DENSITY 4 
 
 // Lighting
 #define LAMP_HEIGHT ROAD_TUNNEL_HEIGHT
@@ -45,6 +45,7 @@
 #define Z_FAR 200
 
 // Others
+#define HIGH_DETAIL_VIEW_DISTANCE 50
 #define SECOND_IN_MILLIS 1000.0f
 #define X 0
 #define Y 1
@@ -55,6 +56,7 @@
 // Modes
 static int draw_mode; // GL_LINE or GL_FILL
 static enum {PLAYER_VIEW, BIRDS_EYE_VIEW} camera_mode;
+static enum {DAY, NIGHT} lighting_mode;
 
 // Vehicle physics
 static float speed = 0.0;
@@ -64,6 +66,7 @@ static float turn_angle = 0;
 
 // Other
 static int lamps[] = { GL_LIGHT2, GL_LIGHT3, GL_LIGHT4, GL_LIGHT5 };
+
 /***************************** HELPER FUNCTIONS ******************************/
 bool outsideTunnel(int z) {
     return z != 0 && z % (DISTANCE_BETWEEN_TUNNELS + TUNNEL_LENGTH) < DISTANCE_BETWEEN_TUNNELS;
@@ -152,31 +155,31 @@ void configureRoad() {
             drawCylinder(
                     new GLfloat[] { road_tracing(SL_z[sign_index]) + ROAD_WIDTH, 0, positions_SL[i][Z] }, 
                     LAMP_CYLINDER_RADIUS,
-                    LAMP_HEIGHT, 
+                    LAMP_HEIGHT + SIGN_HEIGHT, 
                     20
                  );
             drawCylinder(
                     new GLfloat[] { road_tracing(SL_z[sign_index]) - ROAD_WIDTH, 0, positions_SL[i][Z] }, 
                     LAMP_CYLINDER_RADIUS,
-                    LAMP_HEIGHT, 
+                    LAMP_HEIGHT + SIGN_HEIGHT, 
                     20
                  );
             
             // Rectangle that will contain the texture
             drawRectangle(
-                    new GLfloat[] { road_tracing(SL_z[sign_index]) + ROAD_WIDTH + LAMP_CYLINDER_RADIUS, 
+                    new GLfloat[] { road_tracing(SL_z[sign_index]) + ROAD_WIDTH, 
                                     LAMP_HEIGHT + SIGN_HEIGHT, 
                                     positions_SL[i][Z]
                                   }, // top right
-                    new GLfloat[] { road_tracing(SL_z[sign_index]) - ROAD_WIDTH - LAMP_CYLINDER_RADIUS, 
+                    new GLfloat[] { road_tracing(SL_z[sign_index]) - ROAD_WIDTH, 
                                     LAMP_HEIGHT + SIGN_HEIGHT, 
                                     positions_SL[i][Z]
                                   }, // top left
-                    new GLfloat[] { road_tracing(SL_z[sign_index]) - ROAD_WIDTH - LAMP_CYLINDER_RADIUS, 
+                    new GLfloat[] { road_tracing(SL_z[sign_index]) - ROAD_WIDTH, 
                                     LAMP_HEIGHT - 0.1, 
                                     positions_SL[i][Z]
                                   }, // bottom left
-                    new GLfloat[] { road_tracing(SL_z[sign_index]) + ROAD_WIDTH + LAMP_CYLINDER_RADIUS, 
+                    new GLfloat[] { road_tracing(SL_z[sign_index]) + ROAD_WIDTH, 
                                     LAMP_HEIGHT - 0.1, 
                                     positions_SL[i][Z]
                                   }  // bottom right
@@ -184,6 +187,8 @@ void configureRoad() {
 
             positions_SL[i][X] = road_tracing(SL_z[i]); // sign lamp on middle
             directions_SL[i][X] = 0.0; // pointing down
+            
+
         }
         // Render lamp supports for outside tunnel
         else if (outsideTunnel(SL_z[i])) {
@@ -206,8 +211,9 @@ void configureRoad() {
         glLightfv(lamps[i], GL_SPOT_DIRECTION, directions_SL[i]);
 	    glLightfv(lamps[i], GL_POSITION, positions_SL[i]);
         glPushMatrix();
+        glColor3f(1.0, 1.0, 1.0);
         glTranslatef(positions_SL[i][X], positions_SL[i][Y], positions_SL[i][Z]);
-        glutWireSphere(0.4, 10, 10);
+        glutSolidSphere(0.4, 10, 10);
         glPopMatrix();
     }
 }
@@ -259,7 +265,12 @@ void displayRoad(int length) {
         GLfloat v0[3] = { road_tracing(i + 1) - ROAD_WIDTH, 0, (float)i + 1 }; // next right
         GLfloat v1[3] = { road_tracing(i    ) - ROAD_WIDTH, 0, (float)i }; // last right
         GLfloat v2[3] = { road_tracing(i    ) + ROAD_WIDTH, 0, (float)i }; // last left
-        quad(v0, v3, v2, v1, QUAD_DENSITY, QUAD_DENSITY);
+        if (i - position[Z] < HIGH_DETAIL_VIEW_DISTANCE) { 
+            quad(v0, v3, v2, v1, 3*QUAD_DENSITY, QUAD_DENSITY);
+        }
+        else {
+            quad(v0, v3, v2, v1, 3*QUAD_DENSITY/4, QUAD_DENSITY/4);
+        }
         
         glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, BE_border);
 
@@ -339,30 +350,14 @@ void setupLighting() {
     GLfloat S[] = {0.3, 0.3, 0.3, 1.0};
     cutoff = 90.0; // degrees
     exponent = 3.0;
-
-    glLightfv(GL_LIGHT2, GL_AMBIENT, A);
-    glLightfv(GL_LIGHT2, GL_DIFFUSE, D);
-    glLightfv(GL_LIGHT2, GL_SPECULAR, S);
-    glLightf(GL_LIGHT2, GL_SPOT_CUTOFF, cutoff);
-    glLightf(GL_LIGHT2, GL_SPOT_EXPONENT, exponent);
-
-    glLightfv(GL_LIGHT3, GL_AMBIENT, A);
-    glLightfv(GL_LIGHT3, GL_DIFFUSE, D);
-    glLightfv(GL_LIGHT3, GL_SPECULAR, S);
-    glLightf(GL_LIGHT3, GL_SPOT_CUTOFF, cutoff);
-    glLightf(GL_LIGHT3, GL_SPOT_EXPONENT, exponent);
-   
-    glLightfv(GL_LIGHT4, GL_AMBIENT, A);
-    glLightfv(GL_LIGHT4, GL_DIFFUSE, D);
-    glLightfv(GL_LIGHT4, GL_SPECULAR, S);
-    glLightf(GL_LIGHT4, GL_SPOT_CUTOFF, cutoff);
-    glLightf(GL_LIGHT4, GL_SPOT_EXPONENT, exponent);
-
-    glLightfv(GL_LIGHT5, GL_AMBIENT, A);
-    glLightfv(GL_LIGHT5, GL_DIFFUSE, D);
-    glLightfv(GL_LIGHT5, GL_SPECULAR, S);
-    glLightf(GL_LIGHT5, GL_SPOT_CUTOFF, cutoff);
-    glLightf(GL_LIGHT5, GL_SPOT_EXPONENT, exponent);
+    
+    for (int i = 0; i < NUM_STREETLAMPS; i++) {
+        glLightfv(lamps[i], GL_AMBIENT, A);
+        glLightfv(lamps[i], GL_DIFFUSE, D);
+        glLightfv(lamps[i], GL_SPECULAR, S);
+        glLightf(lamps[i], GL_SPOT_CUTOFF, cutoff);
+        glLightf(lamps[i], GL_SPOT_EXPONENT, exponent);
+    }
 }
 
 /********************************* CALLBACKS *********************************/
@@ -476,6 +471,17 @@ void onKey(unsigned char key, int x, int y) {
         case 'a':
         case 'A':
             draw_mode = (draw_mode == GL_LINE) ? GL_FILL : GL_LINE;
+            break;
+
+        case 'd':
+        case 'D':
+            lighting_mode = (lighting_mode == DAY) ? NIGHT : DAY;
+            if (glIsEnabled(GL_LIGHTING)){
+                glDisable(GL_LIGHTING);
+            }
+            else {
+                glEnable(GL_LIGHTING);
+            }
             break;
 
         case 'c':
