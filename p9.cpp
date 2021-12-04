@@ -69,21 +69,6 @@ static int lamps[] = { GL_LIGHT2, GL_LIGHT3, GL_LIGHT4, GL_LIGHT5 };
 
 /***************************** HELPER FUNCTIONS ******************************/
 
-void configureScene() {
-	glClearColor(0, 0, 0, 1);
-
-    glEnable(GL_DEPTH_TEST);
-
-    glEnable(GL_LIGHTING);
-
-    glEnable(GL_LIGHT0);
-    glEnable(GL_LIGHT1);
-    glEnable(GL_LIGHT2);
-    glEnable(GL_LIGHT3);
-    glEnable(GL_LIGHT4);
-    glEnable(GL_LIGHT5);
-}
-
 bool outsideTunnel(int z) {
     return z != 0 && z % (DISTANCE_BETWEEN_TUNNELS + TUNNEL_LENGTH) < DISTANCE_BETWEEN_TUNNELS;
 }
@@ -203,8 +188,6 @@ void configureRoad() {
 
             positions_SL[i][X] = road_tracing(SL_z[i]); // sign lamp on middle
             directions_SL[i][X] = 0.0; // pointing down
-            
-
         }
         // Render lamp supports for outside tunnel
         else if (outsideTunnel(SL_z[i])) {
@@ -378,17 +361,27 @@ void setupLighting() {
 
 /********************************* CALLBACKS *********************************/
 void init() {
-    showControls();
-
-    configureScene();
-    
-    setupLighting();
-
 
     // Mode initialization
     draw_mode = GL_FILL;
     camera_mode = PLAYER_VIEW;
 
+    setupLighting();
+
+	glClearColor(0, 0, 0, 1);
+
+    glEnable(GL_DEPTH_TEST);
+
+    glEnable(GL_LIGHTING);
+
+    glEnable(GL_LIGHT0);
+    glEnable(GL_LIGHT1);
+    glEnable(GL_LIGHT2);
+    glEnable(GL_LIGHT3);
+    glEnable(GL_LIGHT4);
+    glEnable(GL_LIGHT5);
+
+    showControls();
 }
 
 void display() {
