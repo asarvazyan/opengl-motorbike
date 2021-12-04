@@ -64,10 +64,30 @@ static float velocity[3] = { 0.0, 1.0, 1.0 };
 static float position[3] = { 0.0, 1.0, 0.0 };
 static float turn_angle = 0;
 
+// Textures
+GLuint tex_road, tex_road_border;
+GLuint tex_sign1, tex_sign2, tex_sign3;
+GLuint tex_support;
+
 // Other
 static int lamps[] = { GL_LIGHT2, GL_LIGHT3, GL_LIGHT4, GL_LIGHT5 };
 
 /***************************** HELPER FUNCTIONS ******************************/
+void loadTextures() {
+
+    glGenTextures(1, &tex_road);
+	glBindTexture(GL_TEXTURE_2D, tex_road);
+	loadImageFile((char*)"assets/road.jpg");
+
+    glGenTextures(1, &tex_road_border);
+	glBindTexture(GL_TEXTURE_2D, tex_road_border);
+	loadImageFile((char*)"assets/road_border.jpg");
+
+    glGenTextures(1, &tex_support);
+	glBindTexture(GL_TEXTURE_2D, tex_support);
+	loadImageFile((char*)"assets/wood.jpg");
+}
+
 
 bool outsideTunnel(int z) {
     return z != 0 && z % (DISTANCE_BETWEEN_TUNNELS + TUNNEL_LENGTH) < DISTANCE_BETWEEN_TUNNELS;
@@ -87,9 +107,13 @@ void drawRectangle(GLfloat* v0, GLfloat* v1, GLfloat* v2, GLfloat* v3) {
     glEnd();
 }
 
-void drawCylinder(GLfloat* pos, GLfloat radius, GLfloat height, GLfloat slices) {
+void drawCylindricalSupport(GLfloat* pos, GLfloat radius, GLfloat height, GLfloat slices) {
     GLfloat h0, h1, x, z;
-    
+
+    glBindTexture(GL_TEXTURE_2D, tex_support);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
     for (int i = 0; i < slices; i++) {
         h0 = ((float)i)     * 2.0 * M_PI / slices;
         h1 = ((float)i + 1) * 2.0 * M_PI / slices;
@@ -98,7 +122,8 @@ void drawCylinder(GLfloat* pos, GLfloat radius, GLfloat height, GLfloat slices) 
         GLfloat v1[3] = { pos[0] + radius * cos(h1), pos[1], pos[2] + radius * sin(h1) }; // bottom right
         GLfloat v2[3] = { pos[0] + radius * cos(h0), pos[1] + height, pos[2] + radius * sin(h0) }; // top left
         GLfloat v3[3] = { pos[0] + radius * cos(h1), pos[1] + height, pos[2] + radius * sin(h1) }; // top right
-        drawRectangle(v3, v2, v0, v1);
+        //drawRectangle(v3, v2, v0, v1);
+        quadtex(v3, v2, v0, v1, 0, 1, 0, 1, 1, 1);
     }
 }
 
@@ -153,13 +178,13 @@ void configureRoad() {
     for (int i = 0; i < NUM_STREETLAMPS; i++) {
         // Render sign
         if (i == sign_index && outsideTunnel(SL_z[i])) {
-            drawCylinder(
+            drawCylindricalSupport(
                     new GLfloat[] { road_tracing(SL_z[sign_index]) + ROAD_WIDTH, 0, positions_SL[i][Z] }, 
                     LAMP_CYLINDER_RADIUS,
                     LAMP_HEIGHT + SIGN_HEIGHT, 
                     20
                  );
-            drawCylinder(
+            drawCylindricalSupport(
                     new GLfloat[] { road_tracing(SL_z[sign_index]) - ROAD_WIDTH, 0, positions_SL[i][Z] }, 
                     LAMP_CYLINDER_RADIUS,
                     LAMP_HEIGHT + SIGN_HEIGHT, 
@@ -191,7 +216,7 @@ void configureRoad() {
         }
         // Render lamp supports for outside tunnel
         else if (outsideTunnel(SL_z[i])) {
-            drawCylinder(
+            drawCylindricalSupport(
                     new GLfloat[] { positions_SL[i][X], 0, positions_SL[i][Z] }, 
                     LAMP_CYLINDER_RADIUS,
                     LAMP_HEIGHT, 
@@ -264,24 +289,34 @@ void displayRoad(int length) {
         GLfloat v0[3] = { road_tracing(i + 1) - ROAD_WIDTH, 0, (float)i + 1 }; // next right
         GLfloat v1[3] = { road_tracing(i    ) - ROAD_WIDTH, 0, (float)i }; // last right
         GLfloat v2[3] = { road_tracing(i    ) + ROAD_WIDTH, 0, (float)i }; // last left
+
+        glBindTexture(GL_TEXTURE_2D, tex_road);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
         if (i - position[Z] < HIGH_DETAIL_VIEW_DISTANCE) { 
-            quad(v0, v3, v2, v1, 3*QUAD_DENSITY, QUAD_DENSITY);
+            quadtex(v0, v3, v2, v1, 0, 1, 0, 1, 3*QUAD_DENSITY, QUAD_DENSITY);
         }
         else {
-            quad(v0, v3, v2, v1, 3*QUAD_DENSITY/4, QUAD_DENSITY/4);
+            quadtex(v0, v3, v2, v1, 0, 1, 0, 1, 3*QUAD_DENSITY/4, QUAD_DENSITY/4);
         }
         
+        glBindTexture(GL_TEXTURE_2D, tex_road_border);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, BE_border);
 
         // Left road border
         GLfloat v0_y[3] = { road_tracing(i + 1) - ROAD_WIDTH, ROAD_BORDER_HEIGHT, (float)i + 1 };
         GLfloat v1_y[3] = { road_tracing(i    ) - ROAD_WIDTH, ROAD_BORDER_HEIGHT, (float)i };
-        drawRectangle(v0, v1, v1_y, v0_y);
+        //drawRectangle(v0, v1, v1_y, v0_y);
+        quadtex(v0, v1, v1_y, v0_y, 0, 1, 0, 1, 1, 1);
 
         // Right road border
         GLfloat v3_y[3] = { road_tracing(i + 1) + ROAD_WIDTH, ROAD_BORDER_HEIGHT, (float)i + 1 };
         GLfloat v2_y[3] = { road_tracing(i    ) + ROAD_WIDTH, ROAD_BORDER_HEIGHT, (float)i };
-        drawRectangle(v3, v2, v2_y, v3_y);
+        //drawRectangle(v3, v2, v2_y, v3_y);
+        quadtex(v3, v2, v2_y, v3_y, 0, 1, 0, 1, 1, 1);
 
         // Tunnel
         if (!outsideTunnel(i)) {
@@ -366,11 +401,14 @@ void init() {
     draw_mode = GL_FILL;
     camera_mode = PLAYER_VIEW;
 
+    loadTextures();
+
     setupLighting();
 
 	glClearColor(0, 0, 0, 1);
 
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_TEXTURE_2D);
 
     glEnable(GL_LIGHTING);
 
