@@ -288,6 +288,7 @@ void configureRoad() {
         glPushMatrix();
         glColor3f(1.0, 1.0, 1.0);
         glTranslatef(positions_SL[i][X], positions_SL[i][Y], positions_SL[i][Z]);
+        // TODO: add textures to lamp
         glutSolidSphere(0.4, 10, 10);
         glPopMatrix();
     }
