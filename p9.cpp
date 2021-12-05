@@ -22,7 +22,7 @@
 // Road
 #define ROAD_AMPLITUDE 10
 #define ROAD_PERIOD 300
-#define ROAD_LENGTH 150
+#define RENDER_DISTANCE 150
 #define ROAD_WIDTH 8
 #define ROAD_BORDER_HEIGHT 0.4
 #define ROAD_TUNNEL_HEIGHT 4
@@ -36,7 +36,7 @@
 
 // Lighting
 #define LAMP_HEIGHT ROAD_TUNNEL_HEIGHT
-#define DISTANCE_BETWEEN_LAMPS ROAD_LENGTH / 4
+#define DISTANCE_BETWEEN_LAMPS RENDER_DISTANCE / 4
 #define VEHICLE_PASSING_LAMP_DISTANCE DISTANCE_BETWEEN_LAMPS / 2
 
 // Camera
@@ -69,6 +69,9 @@ GLuint tex_road, tex_road_border;
 GLuint tex_sign1, tex_sign2, tex_sign3;
 GLuint tex_support, tex_lamp;
 GLuint tex_tunnel_wall, tex_tunnel_ceiling;
+GLuint tex_skyline;
+
+GLUquadric *quadric;
 
 // Other
 static int lamps[] = { GL_LIGHT2, GL_LIGHT3, GL_LIGHT4, GL_LIGHT5 };
@@ -106,11 +109,15 @@ void loadTextures() {
 
     glGenTextures(1, &tex_tunnel_wall);
 	glBindTexture(GL_TEXTURE_2D, tex_tunnel_wall);
-	loadImageFile((char*)"assets/tunnel_brick_wall.jpg");
+	loadImageFile((char*)"assets/tunnel_wall.jpg");
     
     glGenTextures(1, &tex_tunnel_ceiling);
 	glBindTexture(GL_TEXTURE_2D, tex_tunnel_ceiling);
 	loadImageFile((char*)"assets/Metal_Plate.jpg");
+
+    glGenTextures(1, &tex_skyline);
+	glBindTexture(GL_TEXTURE_2D, tex_skyline);
+	loadImageFile((char*)"assets/background_skyline_long.jpg");
 }
 
 
@@ -306,6 +313,22 @@ void showControls() {
     std::cout << "\tESC: exit." << endl;
 }
 
+void displaySkyline(int radius) {
+    quadric = gluNewQuadric();
+
+    glPushMatrix();
+	glBindTexture(GL_TEXTURE_2D, tex_skyline);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	gluQuadricTexture(quadric, 1);
+
+	glTranslatef(position[X], -30, position[Z]);
+    glRotatef(100, 0, 1, 0);
+	glRotatef(-90, 1, 0, 0);
+	gluCylinder(quadric, radius, radius, 100, 50, 50);
+    //glRotatef(-90, 0, 1, 0);
+	glPopMatrix();
+}
 
 void displayRoad(int length) {
     glPolygonMode(GL_FRONT_AND_BACK, draw_mode);
@@ -492,7 +515,8 @@ void display() {
         );
    
     // Camera-independent elements
-    displayRoad(ROAD_LENGTH);
+    displayRoad(RENDER_DISTANCE);
+    displaySkyline(RENDER_DISTANCE);
 
 
 	glutSwapBuffers();
