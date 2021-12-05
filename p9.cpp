@@ -31,7 +31,7 @@
 #define NUM_STREETLAMPS 4
 #define LAMP_CYLINDER_RADIUS 0.2f
 #define NUM_LAMPS_BETWEEN_SIGNS 5
-#define SIGN_HEIGHT 3
+#define SIGN_HEIGHT 4
 #define QUAD_DENSITY 4 
 
 // Lighting
@@ -67,7 +67,8 @@ static float turn_angle = 0;
 // Textures
 GLuint tex_road, tex_road_border;
 GLuint tex_sign1, tex_sign2, tex_sign3;
-GLuint tex_support;
+GLuint tex_support, tex_lamp;
+GLuint tex_tunnel_wall, tex_tunnel_ceiling;
 
 // Other
 static int lamps[] = { GL_LIGHT2, GL_LIGHT3, GL_LIGHT4, GL_LIGHT5 };
@@ -86,6 +87,30 @@ void loadTextures() {
     glGenTextures(1, &tex_support);
 	glBindTexture(GL_TEXTURE_2D, tex_support);
 	loadImageFile((char*)"assets/wood.jpg");
+
+    glGenTextures(1, &tex_sign1);
+	glBindTexture(GL_TEXTURE_2D, tex_sign1);
+	loadImageFile((char*)"assets/welcome_sign.jpg");
+
+    glGenTextures(1, &tex_sign2);
+	glBindTexture(GL_TEXTURE_2D, tex_sign2);
+	loadImageFile((char*)"assets/sign2.jpg");
+
+    glGenTextures(1, &tex_sign3);
+	glBindTexture(GL_TEXTURE_2D, tex_sign3);
+	loadImageFile((char*)"assets/sign3.jpg");
+
+    glGenTextures(1, &tex_lamp);
+	glBindTexture(GL_TEXTURE_2D, tex_lamp);
+	loadImageFile((char*)"assets/cream_white.jpg");
+
+    glGenTextures(1, &tex_tunnel_wall);
+	glBindTexture(GL_TEXTURE_2D, tex_tunnel_wall);
+	loadImageFile((char*)"assets/tunnel_brick_wall.jpg");
+    
+    glGenTextures(1, &tex_tunnel_ceiling);
+	glBindTexture(GL_TEXTURE_2D, tex_tunnel_ceiling);
+	loadImageFile((char*)"assets/Metal_Plate.jpg");
 }
 
 
@@ -139,6 +164,7 @@ void configureRoad() {
     static int first_SL = 0;
     static int count_SL_since_last_sign = 0;
     static int sign_index = -1; // index in SL_z of z position of the sign 
+    static int signs_passed = 0;
 
     // Rotate lamp positions to render next lamp in correct position
     if (position[Z] > (SL_z[first_SL] + VEHICLE_PASSING_LAMP_DISTANCE)) {
@@ -150,6 +176,7 @@ void configureRoad() {
         if (sign_index != -1 && count_SL_since_last_sign > NUM_STREETLAMPS - 1) {
             sign_index = -1;
             count_SL_since_last_sign = 0;
+            signs_passed++;
         }
     }
     
@@ -192,7 +219,20 @@ void configureRoad() {
                  );
             
             // Rectangle that will contain the texture
-            drawRectangle(
+            if (signs_passed == 0) {
+                glBindTexture(GL_TEXTURE_2D, tex_sign1);
+            }
+            else if (signs_passed % 2 == 0) {
+                glBindTexture(GL_TEXTURE_2D, tex_sign2);
+            }
+            else {
+                glBindTexture(GL_TEXTURE_2D, tex_sign3);
+            }
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+            //drawRectangle(
+            quadtex(
                     new GLfloat[] { road_tracing(SL_z[sign_index]) + ROAD_WIDTH, 
                                     LAMP_HEIGHT + SIGN_HEIGHT, 
                                     positions_SL[i][Z]
@@ -208,7 +248,10 @@ void configureRoad() {
                     new GLfloat[] { road_tracing(SL_z[sign_index]) + ROAD_WIDTH, 
                                     LAMP_HEIGHT - 0.1, 
                                     positions_SL[i][Z]
-                                  }  // bottom right
+                                  },  // bottom right
+                    0, 1, 
+                    1, 0, 
+                    1, 1
                  );
 
             positions_SL[i][X] = road_tracing(SL_z[i]); // sign lamp on middle
@@ -259,6 +302,7 @@ void showControls() {
     std::cout << "\tArrrows: control vehicle movement." << endl;
     std::cout << "\t'A' or 'a': toggle between solid and wire drawing modes." << endl;
     std::cout << "\t'C' or 'c': toggle between player view and birds-eye view." << endl;
+    std::cout << "\t'D' or 'd': toggle between night and day." << endl;
     std::cout << "\tESC: exit." << endl;
 }
 
@@ -334,8 +378,13 @@ void displayRoad(int length) {
 
             // Only draw walls half the time
             if (i % 8 < 4) {
-                drawRectangle(v0, v1, v1_y, v0_y);
-                drawRectangle(v3, v2, v2_y, v3_y);
+                glBindTexture(GL_TEXTURE_2D, tex_tunnel_wall);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                //drawRectangle(v0, v1, v1_y, v0_y);
+                quadtex(v0, v1, v1_y, v0_y, 0, 1, 0, 1, 1, 1);
+                //drawRectangle(v3, v2, v2_y, v3_y);
+                quadtex(v3, v2, v2_y, v3_y, 0, 1, 0, 1, 1, 1);
             } 
             // Other half is semitransparent to show weather (is this even possible)
             /*
@@ -346,7 +395,11 @@ void displayRoad(int length) {
 
             // Always draw ceiling
             glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, BE_tunnel_ceil);
-            drawRectangle(v0_y, v1_y, v2_y, v3_y);
+            glBindTexture(GL_TEXTURE_2D, tex_tunnel_ceiling);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            //drawRectangle(v0_y, v1_y, v2_y, v3_y);
+            quadtex(v0_y, v1_y, v2_y, v3_y, 0, 1, 0, 1, 1, 1);
         }
 	}
 
@@ -508,6 +561,13 @@ void onKey(unsigned char key, int x, int y) {
         case 'a':
         case 'A':
             draw_mode = (draw_mode == GL_LINE) ? GL_FILL : GL_LINE;
+            if (draw_mode == GL_LINE) {
+                glDisable(GL_TEXTURE_2D);
+            }
+            else {
+                glEnable(GL_TEXTURE_2D);
+            }
+
             break;
 
         case 'd':
