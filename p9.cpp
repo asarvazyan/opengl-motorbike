@@ -323,7 +323,7 @@ void displaySkyline(int radius) {
 	gluQuadricTexture(quadric, 1);
 
 	glTranslatef(position[X], -30, position[Z]);
-    glRotatef(100, 0, 1, 0);
+    glRotatef(91, 0, 1, 0);
 	glRotatef(-90, 1, 0, 0);
 	gluCylinder(quadric, radius, radius, 100, 50, 50);
     //glRotatef(-90, 0, 1, 0);
