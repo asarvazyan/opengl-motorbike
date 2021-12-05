@@ -113,11 +113,12 @@ void loadTextures() {
     
     glGenTextures(1, &tex_tunnel_ceiling);
 	glBindTexture(GL_TEXTURE_2D, tex_tunnel_ceiling);
-	loadImageFile((char*)"assets/Metal_Plate.jpg");
+	loadImageFile((char*)"assets/tunnel_ceiling.jpg");
 
     glGenTextures(1, &tex_skyline);
 	glBindTexture(GL_TEXTURE_2D, tex_skyline);
 	loadImageFile((char*)"assets/background_skyline_long.jpg");
+
 }
 
 
@@ -373,13 +374,13 @@ void displayRoad(int length) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, BE_border);
 
-        // Left road border
+        // Right road border
         GLfloat v0_y[3] = { road_tracing(i + 1) - ROAD_WIDTH, ROAD_BORDER_HEIGHT, (float)i + 1 };
         GLfloat v1_y[3] = { road_tracing(i    ) - ROAD_WIDTH, ROAD_BORDER_HEIGHT, (float)i };
         //drawRectangle(v0, v1, v1_y, v0_y);
         quadtex(v0, v1, v1_y, v0_y, 0, 1, 0, 1, 1, 1);
 
-        // Right road border
+        // Left road border
         GLfloat v3_y[3] = { road_tracing(i + 1) + ROAD_WIDTH, ROAD_BORDER_HEIGHT, (float)i + 1 };
         GLfloat v2_y[3] = { road_tracing(i    ) + ROAD_WIDTH, ROAD_BORDER_HEIGHT, (float)i };
         //drawRectangle(v3, v2, v2_y, v3_y);
@@ -398,32 +399,23 @@ void displayRoad(int length) {
             // Left wall
             GLfloat v3_y[3] = { road_tracing(i + 1) + ROAD_WIDTH, ROAD_TUNNEL_HEIGHT, (float)i + 1 };
             GLfloat v2_y[3] = { road_tracing(i    ) + ROAD_WIDTH, ROAD_TUNNEL_HEIGHT, (float)i };
+            
 
-            // Only draw walls half the time
-            if (i % 8 < 4) {
-                glBindTexture(GL_TEXTURE_2D, tex_tunnel_wall);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-                //drawRectangle(v0, v1, v1_y, v0_y);
-                quadtex(v0, v1, v1_y, v0_y, 0, 1, 0, 1, 1, 1);
-                //drawRectangle(v3, v2, v2_y, v3_y);
-                quadtex(v3, v2, v2_y, v3_y, 0, 1, 0, 1, 1, 1);
-            } 
-            // Other half is semitransparent to show weather (is this even possible)
-            /*
-            else {
-                // TODO  
-            }
-            */
+            // Draw walls
+            glBindTexture(GL_TEXTURE_2D, tex_tunnel_wall);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            quadtex(v0, v1, v1_y, v0_y, 0, 1, 0, 1, 1, 1);
+            quadtex(v3, v2, v2_y, v3_y, 0, 1, 0, 1, 1, 1);
 
-            // Always draw ceiling
+            // Draw ceiling
             glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, BE_tunnel_ceil);
             glBindTexture(GL_TEXTURE_2D, tex_tunnel_ceiling);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-            //drawRectangle(v0_y, v1_y, v2_y, v3_y);
             quadtex(v0_y, v1_y, v2_y, v3_y, 0, 1, 0, 1, 1, 1);
         }
+
 	}
 
     configureRoad();
