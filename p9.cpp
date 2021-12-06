@@ -153,6 +153,21 @@ void drawCylindricalSupport(GLfloat* pos, GLfloat radius, GLfloat height, GLfloa
     }
 }
 
+void renderSignSupports(float z, float height) {
+    drawCylindricalSupport(
+            new GLfloat[] { road_tracing(z) + ROAD_WIDTH, 0, z }, 
+            LAMP_CYLINDER_RADIUS,
+            height, 
+            20
+         );
+    drawCylindricalSupport(
+            new GLfloat[] { road_tracing(z) - ROAD_WIDTH, 0, z }, 
+            LAMP_CYLINDER_RADIUS,
+            height, 
+            20
+         );
+}
+
 void setSupportMaterialAndTexture() {
     static GLfloat D[] = { 0.8, 0.8, 0.8 };
     static GLfloat S[] = { 0.3, 0.3, 0.3 };
@@ -271,30 +286,19 @@ void configureRoad() {
         // Render sign
         if (i == sign_index && outsideTunnel(SL_z[i])) {
             setSupportMaterialAndTexture();
+            renderSignSupports(SL_z[sign_index], LAMP_HEIGHT + SIGN_HEIGHT);
 
-            drawCylindricalSupport(
-                    new GLfloat[] { road_tracing(SL_z[sign_index]) + ROAD_WIDTH, 0, positions_SL[i][Z] }, 
-                    LAMP_CYLINDER_RADIUS,
-                    LAMP_HEIGHT + SIGN_HEIGHT, 
-                    20
-                 );
-            drawCylindricalSupport(
-                    new GLfloat[] { road_tracing(SL_z[sign_index]) - ROAD_WIDTH, 0, positions_SL[i][Z] }, 
-                    LAMP_CYLINDER_RADIUS,
-                    LAMP_HEIGHT + SIGN_HEIGHT, 
-                    20
-                 );
-            
             // Rectangle that will contain the texture
             setSignMaterialAndTexture(signs_passed);
             renderSign(SL_z[sign_index]);
 
-            positions_SL[i][X] = road_tracing(SL_z[i]); // sign lamp on middle
+            positions_SL[i][X] = road_tracing(SL_z[i]); // sign lamp goes on middle
             directions_SL[i][X] = 0.0; // pointing down
         }
         // Render lamp supports for outside tunnel
         else if (outsideTunnel(SL_z[i])) {
             setSupportMaterialAndTexture();
+
             drawCylindricalSupport(
                     new GLfloat[] { positions_SL[i][X], 0, positions_SL[i][Z] }, 
                     LAMP_CYLINDER_RADIUS,
@@ -304,8 +308,8 @@ void configureRoad() {
         }
         // Do not render anything else, tunnel geometry supports lamps
         else {
-            positions_SL[i][X] = road_tracing(SL_z[i]); // in tunnel -> lamps on middle
-            directions_SL[i][X] = 0.0; // so they point straight down
+            positions_SL[i][X] = road_tracing(SL_z[i]); // lamps in tunnel go on middle
+            directions_SL[i][X] = 0.0; // and they point straight down
         }
     }
     
