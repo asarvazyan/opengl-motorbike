@@ -71,7 +71,6 @@ GLuint tex_support, tex_lamp;
 GLuint tex_tunnel_wall, tex_tunnel_ceiling;
 GLuint tex_skyline;
 
-GLUquadric *quadric;
 
 // Other
 static int lamps[] = { GL_LIGHT2, GL_LIGHT3, GL_LIGHT4, GL_LIGHT5 };
@@ -120,7 +119,6 @@ void loadTextures() {
 	loadImageFile((char*)"assets/background_skyline_long.jpg");
 
 }
-
 
 bool outsideTunnel(int z) {
     return z != 0 && z % (DISTANCE_BETWEEN_TUNNELS + TUNNEL_LENGTH) < DISTANCE_BETWEEN_TUNNELS;
@@ -295,13 +293,13 @@ void configureRoad() {
 }
 
 void configureMoonlight() {
-    GLfloat ML_position[] = { 0.0, 10.0, 0.0, 0.0 };
+    static GLfloat ML_position[] = { 0.0, 10.0, 0.0, 0.0 };
 	glLightfv(GL_LIGHT0, GL_POSITION, ML_position);
 }
 
 void configureHeadlight() {
-    GLfloat HL_position[] = { 0.0, 0.7, 0.0, 1.0 };
-    GLfloat HL_direction[] = { 0.0, -0.3, -0.6 };
+    static GLfloat HL_position[] = { 0.0, 0.7, 0.0, 1.0 };
+    static GLfloat HL_direction[] = { 0.0, -0.3, -0.6 };
 	glLightfv(GL_LIGHT1, GL_POSITION, HL_position);
     glLightfv(GL_LIGHT1, GL_SPOT_DIRECTION, HL_direction);
 }
@@ -316,6 +314,7 @@ void showControls() {
 }
 
 void displaySkyline(int radius) {
+    static GLUquadric *quadric;
     quadric = gluNewQuadric();
 
     glPushMatrix();
@@ -328,93 +327,135 @@ void displaySkyline(int radius) {
     glRotatef(91, 0, 1, 0);
 	glRotatef(-90, 1, 0, 0);
 	gluCylinder(quadric, radius, radius, 100, 50, 50);
-    //glRotatef(-90, 0, 1, 0);
 	glPopMatrix();
+}
+
+void setRoadMaterialAndTexture() {
+    static GLfloat D[] = { 0.8, 0.8, 0.8 };
+    static GLfloat S[] = { 0.3, 0.3, 0.3 };
+    static float BE = 2;
+
+    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, D);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, S);
+    glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, BE);
+
+    glBindTexture(GL_TEXTURE_2D, tex_road);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+}
+
+void setRoadBorderMaterialAndTexture() {
+    static GLfloat D[] = { 0.8, 0.8, 0.8 };
+    static GLfloat S[] = { 0.3, 0.3, 0.3 };
+    static float BE = 5;
+
+    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, D);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, S);
+    glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, BE);
+
+    glBindTexture(GL_TEXTURE_2D, tex_road_border);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+}
+
+void setTunnelWallMaterialAndTexture() {
+    static GLfloat D[] = { 0.6, 0.6, 0.6 };
+    static GLfloat S[] = { 0.5, 0.5, 0.5 };
+    static float BE = 4;
+
+    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, D);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, S);
+    glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, BE);
+
+    glBindTexture(GL_TEXTURE_2D, tex_tunnel_wall);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+}
+
+void setTunnelCeilingMaterialAndTexture() {
+    static GLfloat D[] = { 0.6, 0.6, 0.6 };
+    static GLfloat S[] = { 0.5, 0.5, 0.5 };
+    static float BE = 2;
+
+    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, D);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, S);
+    glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, BE);
+
+    glBindTexture(GL_TEXTURE_2D, tex_tunnel_ceiling);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+}
+
+void renderRoad(int z, int horizontal_slices, int vertical_slices) {
+    GLfloat next_left[3]  = { road_tracing(z + 1) + ROAD_WIDTH, 0, (float)z + 1 };
+    GLfloat next_right[3] = { road_tracing(z + 1) - ROAD_WIDTH, 0, (float)z + 1 };
+    GLfloat this_right[3] = { road_tracing(z    ) - ROAD_WIDTH, 0, (float)z };
+    GLfloat this_left[3]  = { road_tracing(z    ) + ROAD_WIDTH, 0, (float)z };
+
+    quadtex(next_right, next_left, this_left, this_right, 0, 1, 0, 1, horizontal_slices, vertical_slices);
+}
+
+void renderRoadWall(int z, int side, float height) {
+    // side is 1 => left, -1 => right
+    GLfloat next_down[3] = { road_tracing(z + 1) + side * ROAD_WIDTH, 0, (float)z + 1 }; 
+    GLfloat this_up[3]   = { road_tracing(z    ) + side * ROAD_WIDTH, height, (float)z };
+    GLfloat next_up[3]   = { road_tracing(z + 1) + side * ROAD_WIDTH, height, (float)z + 1 };
+    GLfloat this_down[3] = { road_tracing(z    ) + side * ROAD_WIDTH, 0, (float)z }; 
+   
+    // Order matters (so the border is facing us)
+    if (side == -1) {
+        quadtex(next_up, next_down, this_down, this_up, 0, 1, 0, 1, 1, 1);
+    }
+    else {
+        quadtex(next_down, next_up, this_up, this_down, 0, 1, 0, 1, 1, 1);
+    }
+}
+
+void renderRoadCeiling(int z, float height) {
+
+    GLfloat next_right[3] = { road_tracing(z + 1) - ROAD_WIDTH, height, (float)z + 1 };
+    GLfloat this_right[3] = { road_tracing(z    ) - ROAD_WIDTH, height, (float)z };
+    GLfloat next_left[3]  = { road_tracing(z + 1) + ROAD_WIDTH, height, (float)z + 1 };
+    GLfloat this_left[3]  = { road_tracing(z    ) + ROAD_WIDTH, height, (float)z };
+    
+    quadtex(next_right, next_left, this_left, this_right, 0, 1, 0, 1, 1, 1);
+}
+
+bool atHighQualityRoadPosition(int z) {
+    return (z - position[Z] < HIGH_DETAIL_VIEW_DISTANCE);
 }
 
 void displayRoad(int length) {
     glPolygonMode(GL_FRONT_AND_BACK, draw_mode);
 
-    // Material configuration
-    GLfloat D_road[] = { 0.8, 0.8, 0.8 };
-    GLfloat S_road[] = { 0.3, 0.3, 0.3 };
-    float BE_road = 2;
-
-    float BE_border = 5;
-
-    GLfloat D_tunnel[] = { 0.6, 0.6, 0.6 };
-    GLfloat S_tunnel[] = { 0.5, 0.5, 0.5 };
-    float BE_tunnel_wall = 4;
-    float BE_tunnel_ceil = 2;
-
     for (int i = position[Z] - TUNNEL_LENGTH; i < position[Z] + length; i++) {
-    
-        glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, D_road);
-        glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, S_road);
-        glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, BE_road);
+        setRoadMaterialAndTexture(); 
 
         // Road
-		GLfloat v3[3] = { road_tracing(i + 1) + ROAD_WIDTH, 0, (float)i + 1 }; // next left
-        GLfloat v0[3] = { road_tracing(i + 1) - ROAD_WIDTH, 0, (float)i + 1 }; // next right
-        GLfloat v1[3] = { road_tracing(i    ) - ROAD_WIDTH, 0, (float)i }; // last right
-        GLfloat v2[3] = { road_tracing(i    ) + ROAD_WIDTH, 0, (float)i }; // last left
-
-        glBindTexture(GL_TEXTURE_2D, tex_road);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-        if (i - position[Z] < HIGH_DETAIL_VIEW_DISTANCE) { 
-            quadtex(v0, v3, v2, v1, 0, 1, 0, 1, 3*QUAD_DENSITY, QUAD_DENSITY);
+        if (atHighQualityRoadPosition(i)) { 
+            renderRoad(i, 3*QUAD_DENSITY, QUAD_DENSITY);
         }
         else {
-            quadtex(v0, v3, v2, v1, 0, 1, 0, 1, 3*QUAD_DENSITY/4, QUAD_DENSITY/4);
+            renderRoad(i, 3*QUAD_DENSITY/4, QUAD_DENSITY/4);
         }
-        
-        glBindTexture(GL_TEXTURE_2D, tex_road_border);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, BE_border);
-
+       
+        setRoadBorderMaterialAndTexture();
         // Right road border
-        GLfloat v0_y[3] = { road_tracing(i + 1) - ROAD_WIDTH, ROAD_BORDER_HEIGHT, (float)i + 1 };
-        GLfloat v1_y[3] = { road_tracing(i    ) - ROAD_WIDTH, ROAD_BORDER_HEIGHT, (float)i };
-        //drawRectangle(v0, v1, v1_y, v0_y);
-        quadtex(v0, v1, v1_y, v0_y, 0, 1, 0, 1, 1, 1);
-
+        renderRoadWall(i, -1, ROAD_BORDER_HEIGHT);
         // Left road border
-        GLfloat v3_y[3] = { road_tracing(i + 1) + ROAD_WIDTH, ROAD_BORDER_HEIGHT, (float)i + 1 };
-        GLfloat v2_y[3] = { road_tracing(i    ) + ROAD_WIDTH, ROAD_BORDER_HEIGHT, (float)i };
-        //drawRectangle(v3, v2, v2_y, v3_y);
-        quadtex(v3, v2, v2_y, v3_y, 0, 1, 0, 1, 1, 1);
+        renderRoadWall(i, 1, ROAD_BORDER_HEIGHT);
 
         // Tunnel
         if (!outsideTunnel(i)) {
-            glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, D_tunnel);
-            glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, S_tunnel);
-            glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, BE_tunnel_wall);
+            setTunnelWallMaterialAndTexture();
 
             // Right wall
-            GLfloat v0_y[3] = { road_tracing(i + 1) - ROAD_WIDTH, ROAD_TUNNEL_HEIGHT, (float)i + 1 };
-            GLfloat v1_y[3] = { road_tracing(i    ) - ROAD_WIDTH, ROAD_TUNNEL_HEIGHT, (float)i };
-
+            renderRoadWall(i, -1, ROAD_TUNNEL_HEIGHT);
             // Left wall
-            GLfloat v3_y[3] = { road_tracing(i + 1) + ROAD_WIDTH, ROAD_TUNNEL_HEIGHT, (float)i + 1 };
-            GLfloat v2_y[3] = { road_tracing(i    ) + ROAD_WIDTH, ROAD_TUNNEL_HEIGHT, (float)i };
+            renderRoadWall(i, 1, ROAD_TUNNEL_HEIGHT);
             
-
-            // Draw walls
-            glBindTexture(GL_TEXTURE_2D, tex_tunnel_wall);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-            quadtex(v0, v1, v1_y, v0_y, 0, 1, 0, 1, 1, 1);
-            quadtex(v3, v2, v2_y, v3_y, 0, 1, 0, 1, 1, 1);
-
-            // Draw ceiling
-            glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, BE_tunnel_ceil);
-            glBindTexture(GL_TEXTURE_2D, tex_tunnel_ceiling);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-            quadtex(v0_y, v1_y, v2_y, v3_y, 0, 1, 0, 1, 1, 1);
+            setTunnelCeilingMaterialAndTexture();
+            renderRoadCeiling(i, ROAD_TUNNEL_HEIGHT);
         }
 
 	}
