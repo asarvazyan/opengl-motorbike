@@ -57,6 +57,7 @@
 static int draw_mode; // GL_LINE or GL_FILL
 static enum {PLAYER_VIEW, BIRDS_EYE_VIEW} camera_mode;
 static enum {DAY, NIGHT} lighting_mode;
+static enum {COLLISIONS, NO_COLLISIONS} collision_mode;
 
 // Vehicle physics
 static float speed = 0.0;
@@ -75,6 +76,7 @@ GLuint tex_skyline;
 static int lamps[] = { GL_LIGHT2, GL_LIGHT3, GL_LIGHT4, GL_LIGHT5 };
 
 /***************************** HELPER FUNCTIONS ******************************/
+
 void loadTextures() {
 
     glGenTextures(1, &tex_road);
@@ -141,6 +143,12 @@ bool outsideTunnel(int z) {
 
 float road_tracing(float u) {
     return ROAD_AMPLITUDE + ROAD_AMPLITUDE * sin(2 * M_PI * (u - ROAD_PERIOD / 4) / ROAD_PERIOD);
+}
+
+bool insideRoadBorder(float nextX, float nextZ) {
+    bool left_of_right_border = (nextX <= road_tracing(nextZ) + ROAD_WIDTH);
+    bool right_of_left_border = (nextX >= road_tracing(nextZ) - ROAD_WIDTH);
+    return (left_of_right_border && right_of_left_border);
 }
 
 // Draw a rectangle assuming parameters in counterclockwise order
@@ -391,9 +399,10 @@ void configureHeadlight() {
 void showControls() {
     std::cout << "Game controls:" << endl;
     std::cout << "\tArrrows: control vehicle movement." << endl;
-    std::cout << "\t'A' or 'a': toggle between solid and wire drawing modes." << endl;
-    std::cout << "\t'C' or 'c': toggle between player view and birds-eye view." << endl;
-    std::cout << "\t'D' or 'd': toggle between night and day." << endl;
+    std::cout << "\t'S' or 's': toggle between solid and wire drawing modes." << endl;
+    std::cout << "\t'P' or 'p': toggle between player view and birds-eye view." << endl;
+    std::cout << "\t'L' or 'l': toggle between night and day." << endl;
+    std::cout << "\t'D' or 'd': toggle between active and inactive collision for the road." << endl;
     std::cout << "\tESC: exit." << endl;
 }
 
@@ -607,8 +616,6 @@ void init() {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_TEXTURE_2D);
 
-    glEnable(GL_LIGHTING);
-
     glEnable(GL_LIGHT0);
     glEnable(GL_LIGHT1);
     glEnable(GL_LIGHT2);
@@ -658,9 +665,29 @@ void onTimer(int interval) {
 
 	float displacement = elapsed * speed;
 	previous = current;
+    
+    float nextX = position[X] + displacement * velocity[X]; 
+    float nextZ = position[Z] + displacement * velocity[Z]; 
 
-	position[X] += displacement * velocity[X];
-	position[Z] += displacement * velocity[Z];
+
+    if (collision_mode == COLLISIONS) {
+        // Only check if inside road (will be used for points)
+        if (insideRoadBorder(nextX, nextZ)) {
+
+            position[X] += displacement * velocity[X];
+            position[Z] += displacement * velocity[Z];
+        }
+        else {
+            // TODO: keep speed but automatically move inside the road
+        }
+
+    }
+    else {
+        position[X] += displacement * velocity[X];
+        position[Z] += displacement * velocity[Z];
+
+    }
+
 
 	glutPostRedisplay();
 
@@ -703,8 +730,8 @@ void onSpecialKey(int key, int x, int y) {
 
 void onKey(unsigned char key, int x, int y) {
 	switch (key) {
-        case 'a':
-        case 'A':
+        case 's':
+        case 'S':
             draw_mode = (draw_mode == GL_LINE) ? GL_FILL : GL_LINE;
             if (draw_mode == GL_LINE) {
                 glDisable(GL_TEXTURE_2D);
@@ -715,8 +742,8 @@ void onKey(unsigned char key, int x, int y) {
 
             break;
 
-        case 'd':
-        case 'D':
+        case 'l':
+        case 'L':
             lighting_mode = (lighting_mode == DAY) ? NIGHT : DAY;
             if (glIsEnabled(GL_LIGHTING)){
                 glDisable(GL_LIGHTING);
@@ -726,8 +753,13 @@ void onKey(unsigned char key, int x, int y) {
             }
             break;
 
-        case 'c':
-        case 'C':
+        case 'd':
+        case 'D':
+            collision_mode = (collision_mode == COLLISIONS) ? NO_COLLISIONS : COLLISIONS;
+            break;
+
+        case 'p':
+        case 'P':
             // TODO: change to first-person|third-person|birds-eye-view
             camera_mode = (camera_mode == PLAYER_VIEW) ? BIRDS_EYE_VIEW : PLAYER_VIEW; 
             position[Y] = (position[Y] == 1.0) ? 150 : 1.0;
