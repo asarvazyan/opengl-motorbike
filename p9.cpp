@@ -146,8 +146,8 @@ float road_tracing(float u) {
 }
 
 bool insideRoadBorder(float nextX, float nextZ) {
-    bool left_of_right_border = (nextX <= road_tracing(nextZ) + ROAD_WIDTH);
-    bool right_of_left_border = (nextX >= road_tracing(nextZ) - ROAD_WIDTH);
+    bool left_of_right_border = (nextX <= road_tracing(nextZ) + ROAD_WIDTH - 0.7);
+    bool right_of_left_border = (nextX >= road_tracing(nextZ) - ROAD_WIDTH + 0.7);
     return (left_of_right_border && right_of_left_border);
 }
 
