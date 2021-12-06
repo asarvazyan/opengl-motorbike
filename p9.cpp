@@ -141,10 +141,6 @@ void drawRectangle(GLfloat* v0, GLfloat* v1, GLfloat* v2, GLfloat* v3) {
 void drawCylindricalSupport(GLfloat* pos, GLfloat radius, GLfloat height, GLfloat slices) {
     GLfloat h0, h1, x, z;
 
-    glBindTexture(GL_TEXTURE_2D, tex_support);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
     for (int i = 0; i < slices; i++) {
         h0 = ((float)i)     * 2.0 * M_PI / slices;
         h1 = ((float)i + 1) * 2.0 * M_PI / slices;
@@ -153,9 +149,72 @@ void drawCylindricalSupport(GLfloat* pos, GLfloat radius, GLfloat height, GLfloa
         GLfloat v1[3] = { pos[0] + radius * cos(h1), pos[1], pos[2] + radius * sin(h1) }; // bottom right
         GLfloat v2[3] = { pos[0] + radius * cos(h0), pos[1] + height, pos[2] + radius * sin(h0) }; // top left
         GLfloat v3[3] = { pos[0] + radius * cos(h1), pos[1] + height, pos[2] + radius * sin(h1) }; // top right
-        //drawRectangle(v3, v2, v0, v1);
         quadtex(v3, v2, v0, v1, 0, 1, 0, 1, 1, 1);
     }
+}
+
+void setSupportMaterialAndTexture() {
+    static GLfloat D[] = { 0.8, 0.8, 0.8 };
+    static GLfloat S[] = { 0.3, 0.3, 0.3 };
+    static float BE = 2;
+
+    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, D);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, S);
+    glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, BE);
+
+    glBindTexture(GL_TEXTURE_2D, tex_support);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+}
+
+void renderSign(float z) {
+    GLfloat top_right[] = {
+        road_tracing(z) + ROAD_WIDTH, 
+        LAMP_HEIGHT + SIGN_HEIGHT, 
+        z
+    };
+    GLfloat top_left[]  =  { 
+        road_tracing(z) - ROAD_WIDTH, 
+        LAMP_HEIGHT + SIGN_HEIGHT, 
+        z
+    };
+    GLfloat bottom_left[] = { 
+        road_tracing(z) - ROAD_WIDTH, 
+        LAMP_HEIGHT - 0.1, 
+        z
+    };
+    GLfloat bottom_right[] = { 
+        road_tracing(z) + ROAD_WIDTH, 
+        LAMP_HEIGHT - 0.1, 
+        z
+    };
+
+    quadtex(top_right, top_left, bottom_left, bottom_right, 0, 1, 1, 0, 1, 1);
+}
+
+void setSignMaterialAndTexture(int signs_passed) {
+
+    static GLfloat D[] = { 0.8, 0.8, 0.8 };
+    static GLfloat S[] = { 0.3, 0.3, 0.3 };
+    static float BE = 2;
+
+    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, D);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, S);
+    glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, BE);
+
+    // Choose sign texture
+    if (signs_passed == 0) {
+        glBindTexture(GL_TEXTURE_2D, tex_sign1);
+    }
+    else if (signs_passed % 2 == 0) {
+        glBindTexture(GL_TEXTURE_2D, tex_sign2);
+    }
+    else {
+        glBindTexture(GL_TEXTURE_2D, tex_sign3);
+    }
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 }
 
 // Configures lighting, adds geometry to lighting and controls where signs appear 
@@ -211,6 +270,8 @@ void configureRoad() {
     for (int i = 0; i < NUM_STREETLAMPS; i++) {
         // Render sign
         if (i == sign_index && outsideTunnel(SL_z[i])) {
+            setSupportMaterialAndTexture();
+
             drawCylindricalSupport(
                     new GLfloat[] { road_tracing(SL_z[sign_index]) + ROAD_WIDTH, 0, positions_SL[i][Z] }, 
                     LAMP_CYLINDER_RADIUS,
@@ -225,46 +286,15 @@ void configureRoad() {
                  );
             
             // Rectangle that will contain the texture
-            if (signs_passed == 0) {
-                glBindTexture(GL_TEXTURE_2D, tex_sign1);
-            }
-            else if (signs_passed % 2 == 0) {
-                glBindTexture(GL_TEXTURE_2D, tex_sign2);
-            }
-            else {
-                glBindTexture(GL_TEXTURE_2D, tex_sign3);
-            }
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-            //drawRectangle(
-            quadtex(
-                    new GLfloat[] { road_tracing(SL_z[sign_index]) + ROAD_WIDTH, 
-                                    LAMP_HEIGHT + SIGN_HEIGHT, 
-                                    positions_SL[i][Z]
-                                  }, // top right
-                    new GLfloat[] { road_tracing(SL_z[sign_index]) - ROAD_WIDTH, 
-                                    LAMP_HEIGHT + SIGN_HEIGHT, 
-                                    positions_SL[i][Z]
-                                  }, // top left
-                    new GLfloat[] { road_tracing(SL_z[sign_index]) - ROAD_WIDTH, 
-                                    LAMP_HEIGHT - 0.1, 
-                                    positions_SL[i][Z]
-                                  }, // bottom left
-                    new GLfloat[] { road_tracing(SL_z[sign_index]) + ROAD_WIDTH, 
-                                    LAMP_HEIGHT - 0.1, 
-                                    positions_SL[i][Z]
-                                  },  // bottom right
-                    0, 1, 
-                    1, 0, 
-                    1, 1
-                 );
+            setSignMaterialAndTexture(signs_passed);
+            renderSign(SL_z[sign_index]);
 
             positions_SL[i][X] = road_tracing(SL_z[i]); // sign lamp on middle
             directions_SL[i][X] = 0.0; // pointing down
         }
         // Render lamp supports for outside tunnel
         else if (outsideTunnel(SL_z[i])) {
+            setSupportMaterialAndTexture();
             drawCylindricalSupport(
                     new GLfloat[] { positions_SL[i][X], 0, positions_SL[i][Z] }, 
                     LAMP_CYLINDER_RADIUS,
@@ -440,19 +470,15 @@ void displayRoad(int length) {
         }
        
         setRoadBorderMaterialAndTexture();
-        // Right road border
         renderRoadWall(i, -1, ROAD_BORDER_HEIGHT);
-        // Left road border
-        renderRoadWall(i, 1, ROAD_BORDER_HEIGHT);
+        renderRoadWall(i,  1, ROAD_BORDER_HEIGHT);
 
         // Tunnel
         if (!outsideTunnel(i)) {
             setTunnelWallMaterialAndTexture();
 
-            // Right wall
             renderRoadWall(i, -1, ROAD_TUNNEL_HEIGHT);
-            // Left wall
-            renderRoadWall(i, 1, ROAD_TUNNEL_HEIGHT);
+            renderRoadWall(i,  1, ROAD_TUNNEL_HEIGHT);
             
             setTunnelCeilingMaterialAndTexture();
             renderRoadCeiling(i, ROAD_TUNNEL_HEIGHT);
