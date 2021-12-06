@@ -678,7 +678,17 @@ void onTimer(int interval) {
             position[Z] += displacement * velocity[Z];
         }
         else {
-            // TODO: keep speed but automatically move inside the road
+            if (speed)
+                speed /= 2;
+
+	        displacement = elapsed * speed;
+
+            if (position[X] < road_tracing(position[Z])){
+                position[X] += displacement * (road_tracing(position[Z]))/5;
+            }
+            else {
+                position[X] += displacement * -(road_tracing(position[Z]))/5;
+            }
         }
 
     }
@@ -725,7 +735,6 @@ void onSpecialKey(int key, int x, int y) {
 	velocity[X] = sin(turn_angle * M_PI / 180);
 	velocity[Z] = cos(turn_angle * M_PI / 180);
 
-	glutPostRedisplay();
 }
 
 void onKey(unsigned char key, int x, int y) {
@@ -773,7 +782,6 @@ void onKey(unsigned char key, int x, int y) {
             exit(0);
 	}
 
-	glutPostRedisplay();
 }
 
 int main(int argc, char** argv) {
