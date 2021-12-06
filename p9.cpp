@@ -66,7 +66,7 @@ static float turn_angle = 0;
 
 // Textures
 GLuint tex_road, tex_road_border;
-GLuint tex_sign1, tex_sign2, tex_sign3;
+GLuint tex_sign1, tex_sign2, tex_sign3, tex_sign4, tex_sign5, tex_sign6;
 GLuint tex_support, tex_lamp;
 GLuint tex_tunnel_wall, tex_tunnel_ceiling;
 GLuint tex_skyline;
@@ -95,15 +95,27 @@ void loadTextures() {
 
     glGenTextures(1, &tex_sign1);
 	glBindTexture(GL_TEXTURE_2D, tex_sign1);
-	loadImageFile((char*)"assets/welcome_sign.jpg");
+	loadImageFile((char*)"assets/welcome_to_paradise.jpg");
 
     glGenTextures(1, &tex_sign2);
 	glBindTexture(GL_TEXTURE_2D, tex_sign2);
-	loadImageFile((char*)"assets/sign2.jpg");
+	loadImageFile((char*)"assets/pain_natural.jpg");
 
     glGenTextures(1, &tex_sign3);
 	glBindTexture(GL_TEXTURE_2D, tex_sign3);
-	loadImageFile((char*)"assets/sign3.jpg");
+	loadImageFile((char*)"assets/no_indep.jpg");
+
+    glGenTextures(1, &tex_sign4);
+	glBindTexture(GL_TEXTURE_2D, tex_sign4);
+	loadImageFile((char*)"assets/consume.jpg");
+
+    glGenTextures(1, &tex_sign5);
+	glBindTexture(GL_TEXTURE_2D, tex_sign5);
+	loadImageFile((char*)"assets/marry_reproduce.jpg");
+
+    glGenTextures(1, &tex_sign6);
+	glBindTexture(GL_TEXTURE_2D, tex_sign6);
+	loadImageFile((char*)"assets/obey.jpg");
 
     glGenTextures(1, &tex_lamp);
 	glBindTexture(GL_TEXTURE_2D, tex_lamp);
@@ -224,11 +236,20 @@ void setSignMaterialAndTexture(int signs_passed) {
     if (signs_passed == 0) {
         glBindTexture(GL_TEXTURE_2D, tex_sign1);
     }
-    else if (signs_passed % 2 == 0) {
+    else if (signs_passed == 1) {
         glBindTexture(GL_TEXTURE_2D, tex_sign2);
     }
-    else {
+    else if (signs_passed % 4 == 1){
         glBindTexture(GL_TEXTURE_2D, tex_sign3);
+    }
+    else if (signs_passed % 4 == 2) {
+        glBindTexture(GL_TEXTURE_2D, tex_sign4);
+    }
+    else if (signs_passed % 4 == 3){
+        glBindTexture(GL_TEXTURE_2D, tex_sign5);
+    }
+    else if (signs_passed % 4 == 4) {
+        glBindTexture(GL_TEXTURE_2D, tex_sign6);
     }
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
