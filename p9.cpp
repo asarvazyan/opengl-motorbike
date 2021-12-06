@@ -71,7 +71,6 @@ GLuint tex_support, tex_lamp;
 GLuint tex_tunnel_wall, tex_tunnel_ceiling;
 GLuint tex_skyline;
 
-
 // Other
 static int lamps[] = { GL_LIGHT2, GL_LIGHT3, GL_LIGHT4, GL_LIGHT5 };
 
@@ -89,6 +88,10 @@ void loadTextures() {
     glGenTextures(1, &tex_support);
 	glBindTexture(GL_TEXTURE_2D, tex_support);
 	loadImageFile((char*)"assets/wood.jpg");
+
+    glGenTextures(1, &tex_lamp);
+	glBindTexture(GL_TEXTURE_2D, tex_lamp);
+	loadImageFile((char*)"assets/cream_white.jpg");
 
     glGenTextures(1, &tex_sign1);
 	glBindTexture(GL_TEXTURE_2D, tex_sign1);
@@ -232,6 +235,25 @@ void setSignMaterialAndTexture(int signs_passed) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 }
 
+void renderLamp(float x, float y, float z) {
+    glTranslatef(x, y, z);
+    glutSolidSphere(0.4, 10, 10);
+}
+
+void setLampMaterialAndTexture() {
+    static GLfloat D[] = { 0.8, 0.8, 0.8 };
+    static GLfloat S[] = { 0.3, 0.3, 0.3 };
+    static float BE = 10;
+
+    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, D);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, S);
+    glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, BE);
+
+    glBindTexture(GL_TEXTURE_2D, tex_lamp);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+}
+
 // Configures lighting, adds geometry to lighting and controls where signs appear 
 void configureRoad() {
     // TODO: fix spheres with no light
@@ -273,7 +295,7 @@ void configureRoad() {
         { road_tracing(SL_z[2]) + ROAD_WIDTH, LAMP_HEIGHT, SL_z[2], 1.0 },
         { road_tracing(SL_z[3]) - ROAD_WIDTH, LAMP_HEIGHT, SL_z[3], 1.0 }
     };
-    
+
     GLfloat directions_SL[NUM_STREETLAMPS][3] = {
         { -1.0, -1.0, 0.0 }, // left one directs light to the right
         {  1.0, -1.0, 0.0 }, // right one directs light to the left
@@ -285,18 +307,23 @@ void configureRoad() {
     for (int i = 0; i < NUM_STREETLAMPS; i++) {
         // Render sign
         if (i == sign_index && outsideTunnel(SL_z[i])) {
+            glPushMatrix();
             setSupportMaterialAndTexture();
             renderSignSupports(SL_z[sign_index], LAMP_HEIGHT + SIGN_HEIGHT);
+            glPopMatrix();
 
             // Rectangle that will contain the texture
+            glPushMatrix();
             setSignMaterialAndTexture(signs_passed);
             renderSign(SL_z[sign_index]);
+            glPopMatrix();
 
             positions_SL[i][X] = road_tracing(SL_z[i]); // sign lamp goes on middle
             directions_SL[i][X] = 0.0; // pointing down
         }
         // Render lamp supports for outside tunnel
         else if (outsideTunnel(SL_z[i])) {
+            glPushMatrix();
             setSupportMaterialAndTexture();
 
             drawCylindricalSupport(
@@ -305,6 +332,7 @@ void configureRoad() {
                     LAMP_HEIGHT, 
                     20
                 );
+            glPopMatrix();
         }
         // Do not render anything else, tunnel geometry supports lamps
         else {
@@ -319,12 +347,13 @@ void configureRoad() {
 	    glLightfv(lamps[i], GL_POSITION, positions_SL[i]);
         glPushMatrix();
         glColor3f(1.0, 1.0, 1.0);
-        glTranslatef(positions_SL[i][X], positions_SL[i][Y], positions_SL[i][Z]);
         // TODO: add textures to lamp
-        glutSolidSphere(0.4, 10, 10);
+        setLampMaterialAndTexture();
+        renderLamp(positions_SL[i][X], positions_SL[i][Y], positions_SL[i][Z]);
         glPopMatrix();
     }
 }
+
 
 void configureMoonlight() {
     static GLfloat ML_position[] = { 0.0, 10.0, 0.0, 0.0 };
@@ -446,7 +475,6 @@ void renderRoadWall(int z, int side, float height) {
 }
 
 void renderRoadCeiling(int z, float height) {
-
     GLfloat next_right[3] = { road_tracing(z + 1) - ROAD_WIDTH, height, (float)z + 1 };
     GLfloat this_right[3] = { road_tracing(z    ) - ROAD_WIDTH, height, (float)z };
     GLfloat next_left[3]  = { road_tracing(z + 1) + ROAD_WIDTH, height, (float)z + 1 };
@@ -463,6 +491,7 @@ void displayRoad(int length) {
     glPolygonMode(GL_FRONT_AND_BACK, draw_mode);
 
     for (int i = position[Z] - TUNNEL_LENGTH; i < position[Z] + length; i++) {
+        glPushMatrix();
         setRoadMaterialAndTexture(); 
 
         // Road
@@ -472,20 +501,27 @@ void displayRoad(int length) {
         else {
             renderRoad(i, 3*QUAD_DENSITY/4, QUAD_DENSITY/4);
         }
-       
+        glPopMatrix(); 
+
+        glPushMatrix();
         setRoadBorderMaterialAndTexture();
         renderRoadWall(i, -1, ROAD_BORDER_HEIGHT);
         renderRoadWall(i,  1, ROAD_BORDER_HEIGHT);
+        glPopMatrix();
 
         // Tunnel
         if (!outsideTunnel(i)) {
+            glPushMatrix();
             setTunnelWallMaterialAndTexture();
 
             renderRoadWall(i, -1, ROAD_TUNNEL_HEIGHT);
             renderRoadWall(i,  1, ROAD_TUNNEL_HEIGHT);
-            
+            glPopMatrix(); 
+
+            glPushMatrix();
             setTunnelCeilingMaterialAndTexture();
             renderRoadCeiling(i, ROAD_TUNNEL_HEIGHT);
+            glPopMatrix();
         }
 
 	}
