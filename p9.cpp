@@ -2,6 +2,7 @@
 
 #include <iostream> 
 #include <cmath>
+#include <random>
 #include <GL/freeglut.h>
 #include <sstream>
 #include "Utilidades.h"
@@ -44,6 +45,11 @@
 #define Z_NEAR 1
 #define Z_FAR 200
 
+// Rain
+#define NUM_RAINDROPS 2000
+#define MIN_RAINDROP_SPEED 50
+#define MAX_RAINDROP_SPEED 500
+
 // Others
 #define HIGH_DETAIL_VIEW_DISTANCE 50
 #define SECOND_IN_MILLIS 1000.0f
@@ -57,6 +63,7 @@
 static int draw_mode; // GL_LINE or GL_FILL
 static enum {PLAYER_VIEW, BIRDS_EYE_VIEW} camera_mode;
 static enum {DAY, NIGHT} lighting_mode;
+static enum {CLEAR, RAINFALL} weather_mode;
 static enum {COLLISIONS, NO_COLLISIONS} collision_mode;
 
 // Vehicle physics
@@ -75,8 +82,109 @@ GLuint tex_skyline;
 // Other
 static int lamps[] = { GL_LIGHT2, GL_LIGHT3, GL_LIGHT4, GL_LIGHT5 };
 
+typedef struct {
+    float position[3];
+//    float velocity[3];
+    float speed;
+    float length;
+} raindrop_t;
+
+raindrop_t raindrops[NUM_RAINDROPS];
+
 /***************************** HELPER FUNCTIONS ******************************/
 
+bool outsideTunnel(int z) {
+    return z != 0 && z % (DISTANCE_BETWEEN_TUNNELS + TUNNEL_LENGTH) < DISTANCE_BETWEEN_TUNNELS;
+}
+
+void initializeRaindrop(raindrop_t *raindrop) {
+    static std::random_device rd;     // only used once to initialise (seed) engine
+    static std::mt19937 rng(rd());    // random-number engine used (Mersenne-Twister in this case)
+    static std::uniform_int_distribution<int> speed_uni(MIN_RAINDROP_SPEED, MAX_RAINDROP_SPEED);
+    /*
+    if not generating rain before camera transform
+    static std::uniform_int_distribution<int> X_uni(-25, 25);
+    static std::uniform_int_distribution<int> Y_uni(3, 7);
+    static std::uniform_int_distribution<int> Z_uni(0.5, RENDER_DISTANCE / 3);
+    */
+    // Since we initialize before transforming the camera, the coordinate system 
+    // we must use is that of the camera
+    static std::uniform_int_distribution<> X_uni(-6, 6);
+    static std::uniform_int_distribution<int> Y_uni(1, 3);
+    static std::uniform_int_distribution<int> Z_uni(-RENDER_DISTANCE / 3, -1.5);
+
+    raindrop->position[X] = X_uni(rng);
+    raindrop->position[Y] = Y_uni(rng); 
+    raindrop->position[Z] = Z_uni(rng);
+
+    raindrop->speed = speed_uni(rng);
+    raindrop->length = (raindrop->speed / (MAX_RAINDROP_SPEED * 1.2 )) ;
+}
+
+raindrop_t createNewRaindrop() {
+    raindrop_t raindrop;
+    initializeRaindrop(&raindrop);
+
+    return raindrop;
+}
+
+void createRaindrops() {
+    // TODO: random inclination of drops (as if wind)
+    for (int i = 0; i < NUM_RAINDROPS; i++) {
+        raindrops[i] = createNewRaindrop();
+    }
+}
+
+
+void displayRain() {
+    for (int i = 0; i < NUM_RAINDROPS; i++) {
+        // Update
+        raindrops[i].position[Y] -= raindrops[i].speed / SECOND_IN_MILLIS;
+
+        if (!outsideTunnel(-raindrops[i].position[Z]+position[Z]))
+            continue;
+
+        if (raindrops[i].position[Y] <= 0) {
+            initializeRaindrop(raindrops + i);
+        }
+
+
+        // Draw raindrop
+        glColor3f(0.5, 0.5, 1.0);
+        glBegin(GL_LINES);
+        glVertex3f(
+                raindrops[i].position[X], 
+                raindrops[i].position[Y], 
+                raindrops[i].position[Z]
+            );
+        glVertex3f(
+                raindrops[i].position[X],
+                raindrops[i].position[Y] - raindrops[i].length,
+                raindrops[i].position[Z]
+            );
+        glEnd();
+     
+
+
+        /*
+        // Update values
+        //Move
+        // Adjust slowdown for speed!
+        par_sys[loop].ypos += par_sys[loop].vel / (slowdown*1000);
+        par_sys[loop].vel += par_sys[loop].gravity;
+        // Decay
+        par_sys[loop].life -= par_sys[loop].fade;
+
+        if (par_sys[loop].ypos <= -10) {
+            par_sys[loop].life = -1.0;
+        }
+        //Revive
+        if (par_sys[loop].life < 0.0) {
+            initParticles(loop);
+        }
+        */
+    }
+}
 void loadTextures() {
 
     glGenTextures(1, &tex_road);
@@ -137,9 +245,6 @@ void loadTextures() {
 
 }
 
-bool outsideTunnel(int z) {
-    return z != 0 && z % (DISTANCE_BETWEEN_TUNNELS + TUNNEL_LENGTH) < DISTANCE_BETWEEN_TUNNELS;
-}
 
 float road_tracing(float u) {
     return ROAD_AMPLITUDE + ROAD_AMPLITUDE * sin(2 * M_PI * (u - ROAD_PERIOD / 4) / ROAD_PERIOD);
@@ -611,6 +716,8 @@ void init() {
 
     setupLighting();
 
+    createRaindrops();
+
 	glClearColor(0, 0, 0, 1);
 
     glEnable(GL_DEPTH_TEST);
@@ -635,6 +742,10 @@ void display() {
     // Camera-dependent elements
     configureMoonlight();
     configureHeadlight();
+
+    if (weather_mode == RAINFALL) {
+        displayRain();
+    }
     
     gluLookAt(
            position[X], position[Y], position[Z], 
@@ -765,6 +876,12 @@ void onKey(unsigned char key, int x, int y) {
         case 'd':
         case 'D':
             collision_mode = (collision_mode == COLLISIONS) ? NO_COLLISIONS : COLLISIONS;
+            break;
+
+        case 'w':
+        case 'W':
+            weather_mode = (weather_mode == RAINFALL) ? CLEAR : RAINFALL;
+            cout << "Changing weather mode to: " << weather_mode << endl;
             break;
 
         case 'p':
