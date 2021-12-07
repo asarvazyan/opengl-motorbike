@@ -60,7 +60,7 @@
 /********************************* TYPEDEFS **********************************/
 typedef struct {
     float position[3];
-//    float velocity[3];
+    float* velocity[3];
     float speed;
     float length;
 } raindrop_t;
@@ -124,7 +124,8 @@ static float position[3] = { 0.0, 1.0, 0.0 };
 static float turn_angle = 0;
 
 // Rain particles
-raindrop_t raindrops[NUM_RAINDROPS];
+static raindrop_t raindrops[NUM_RAINDROPS];
+static float rain_velocity[3] = { 0.0, -1.0, 0.0 };
 
 // Textures
 GLuint tex_road, tex_road_border;
@@ -133,9 +134,13 @@ GLuint tex_support, tex_lamp;
 GLuint tex_tunnel_wall, tex_tunnel_ceiling;
 GLuint tex_skyline;
 
+// Random numbers
+// source: https://stackoverflow.com/questions/288739/generate-random-numbers-uniformly-over-an-entire-range
+static std::random_device rd;     // only used once to initialise (seed) engine
+static std::mt19937 rng(rd());    // random-number engine used (Mersenne-Twister in this case)
+
 // Other
 static int lamps[] = { GL_LIGHT2, GL_LIGHT3, GL_LIGHT4, GL_LIGHT5 };
-
 
 /***************************** HELPER FUNCTIONS ******************************/
 
@@ -144,9 +149,6 @@ bool outsideTunnel(int z) {
 }
 
 void initializeRaindrop(raindrop_t* raindrop) {
-    // source: https://stackoverflow.com/questions/288739/generate-random-numbers-uniformly-over-an-entire-range
-    static std::random_device rd;     // only used once to initialise (seed) engine
-    static std::mt19937 rng(rd());    // random-number engine used (Mersenne-Twister in this case)
     static std::uniform_int_distribution<int> speed_uni(MIN_RAINDROP_SPEED, MAX_RAINDROP_SPEED);
     /*
     if not generating rain before camera transform
@@ -176,17 +178,30 @@ raindrop_t createNewRaindrop() {
 }
 
 void createRaindrops() {
+     
     // TODO: random inclination of drops (as if wind)
     for (int i = 0; i < NUM_RAINDROPS; i++) {
         raindrops[i] = createNewRaindrop();
     }
 }
 
+void changeRainVelocity() {
+    static std::uniform_int_distribution<> X_uni(0, 360);
+    
+    rain_velocity[X] = sin(X_uni(rng));
+}
+
+void createRain() {
+    changeRainVelocity();
+    createRaindrops();
+}
 
 void updateAndRenderRain() {
     for (int i = 0; i < NUM_RAINDROPS; i++) {
         // Update
-        raindrops[i].position[Y] -= raindrops[i].speed / SECOND_IN_MILLIS;
+        raindrops[i].position[X] += raindrops[i].speed*rain_velocity[X] / SECOND_IN_MILLIS;
+        raindrops[i].position[Y] += raindrops[i].speed*rain_velocity[Y] / SECOND_IN_MILLIS;
+        raindrops[i].position[Z] += raindrops[i].speed*rain_velocity[Z] / SECOND_IN_MILLIS;
 
         if (!outsideTunnel(-raindrops[i].position[Z]+position[Z]))
             continue;
@@ -205,9 +220,9 @@ void updateAndRenderRain() {
                 raindrops[i].position[Z]
             );
         glVertex3f(
-                raindrops[i].position[X],
-                raindrops[i].position[Y] - raindrops[i].length,
-                raindrops[i].position[Z]
+                raindrops[i].position[X] + raindrops[i].length*rain_velocity[X],
+                raindrops[i].position[Y] + raindrops[i].length*rain_velocity[Y],
+                raindrops[i].position[Z] + raindrops[i].length*rain_velocity[Z]
             );
         glEnd();
         glPopAttrib();
@@ -526,6 +541,8 @@ void showControls() {
     std::cout << "\t'P' or 'p': toggle between player view and birds-eye view." << endl;
     std::cout << "\t'L' or 'l': toggle between night and day." << endl;
     std::cout << "\t'D' or 'd': toggle between active and inactive collision for the road." << endl;
+    std::cout << "\t'W' or 'w': toggle between clear and rainy weather." << endl;
+    std::cout << "\t'Y' or 'y': randomly change the wind (rain velocity). Effect only visible if rainy." << endl;
     std::cout << "\tESC: exit." << endl;
 }
 
@@ -734,7 +751,8 @@ void init() {
 
     setupLighting();
 
-    createRaindrops();
+    //createRaindrops();
+    createRain();
 
 	glClearColor(0, 0, 0, 1);
 
@@ -894,6 +912,11 @@ void onKey(unsigned char key, int x, int y) {
         case 'd':
         case 'D':
             collision_mode = (collision_mode == COLLISIONS) ? NO_COLLISIONS : COLLISIONS;
+            break;
+
+        case 'y':
+        case 'Y':
+            changeRainVelocity();    
             break;
 
         case 'w':
