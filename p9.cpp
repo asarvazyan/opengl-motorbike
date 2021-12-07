@@ -33,7 +33,7 @@
 #define LAMP_CYLINDER_RADIUS 0.2f
 #define NUM_LAMPS_BETWEEN_SIGNS 5
 #define SIGN_HEIGHT 4
-#define QUAD_DENSITY 4 
+#define QUAD_DENSITY 4
 
 // Lighting
 #define LAMP_HEIGHT ROAD_TUNNEL_HEIGHT
@@ -144,6 +144,7 @@ bool outsideTunnel(int z) {
 }
 
 void initializeRaindrop(raindrop_t* raindrop) {
+    // source: https://stackoverflow.com/questions/288739/generate-random-numbers-uniformly-over-an-entire-range
     static std::random_device rd;     // only used once to initialise (seed) engine
     static std::mt19937 rng(rd());    // random-number engine used (Mersenne-Twister in this case)
     static std::uniform_int_distribution<int> speed_uni(MIN_RAINDROP_SPEED, MAX_RAINDROP_SPEED);
@@ -195,6 +196,7 @@ void updateAndRenderRain() {
         }
 
         // Draw raindrop
+        glPushAttrib(GL_CURRENT_BIT);
         glColor3f(0.5, 0.5, 1.0);
         glBegin(GL_LINES);
         glVertex3f(
@@ -208,6 +210,7 @@ void updateAndRenderRain() {
                 raindrops[i].position[Z]
             );
         glEnd();
+        glPopAttrib();
      
     }
 }
@@ -470,6 +473,7 @@ void configureRoad() {
 
             positions_SL[i][X] = road_tracing(SL_z[i]); // sign lamp goes on middle
             directions_SL[i][X] = 0.0; // pointing down
+
         }
         // Render lamp supports for outside tunnel
         else if (outsideTunnel(SL_z[i])) {
@@ -496,8 +500,6 @@ void configureRoad() {
         glLightfv(lamps[i], GL_SPOT_DIRECTION, directions_SL[i]);
 	    glLightfv(lamps[i], GL_POSITION, positions_SL[i]);
         glPushMatrix();
-        glColor3f(1.0, 1.0, 1.0);
-        // TODO: add textures to lamp
         setLampMaterialAndTexture();
         renderLamp(positions_SL[i][X], positions_SL[i][Y], positions_SL[i][Z]);
         glPopMatrix();
@@ -693,10 +695,10 @@ void setupLighting() {
    
 
     // Vehicle headlight
-    GLfloat A1[] = { 0.5, 0.5, 0.5, 1.0 };
+    GLfloat A1[] = { 0.9, 0.9, 0.9, 1.0 };
     GLfloat D1[] = { 1.0, 1.0, 1.0, 1.0 };
     GLfloat S1[] = { 1.0, 1.0, 1.0, 1.0 };
-    float cutoff = 25.0; // degrees
+    float cutoff = 40.0; // degrees
     float exponent = 20.0;
     
     glLightfv(GL_LIGHT1, GL_AMBIENT, A1);
