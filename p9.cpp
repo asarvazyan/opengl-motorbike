@@ -57,6 +57,57 @@
 #define Y 1
 #define Z 2
 
+/********************************* TYPEDEFS **********************************/
+typedef struct {
+    float position[3];
+//    float velocity[3];
+    float speed;
+    float length;
+} raindrop_t;
+
+/******************************** PROTOTYPES *********************************/
+// Rain 
+void initializeRaindrop(raindrop_t*);
+void createRaindrops(void);
+void updateAndRenderRain(void);
+
+// Tunnel
+bool outsideTunnel(int);
+
+// Materials & Textures
+void loadTextures(void);
+void setSupportMaterialAndTexture(void);
+void setSignMaterialAndTexture(int);
+void setLampMaterialAndTexture(void);
+void setRoadMaterialAndTexture(void);
+void setRoadBorderMaterialAndTexture(void);
+void setTunnelWallMaterialAndTexture(void); 
+void setTunnelCeilingMaterialAndTexture(void);
+
+// Road
+float road_tracing(float);
+bool insideRoadBorder(float, float);
+void drawCylindricalSupport(GLfloat*, GLfloat, GLfloat, GLfloat);
+void displayRoad(int);
+
+// Rendering of elements
+void renderSignSupports(float, float);
+void renderSign(float);
+void renderLamp(float, float, float);
+void renderRoad(int, int, int);
+void renderRoadWall(int, int, float);
+void renderRoadCeiling(int, float);
+void renderSkyline(int);
+bool atHighQualityRoadPosition(int);
+
+// Configuration of scene
+void configureRoad(void);
+void configureMoonlight(void);
+void configureHeadlight(void);
+void setupLighting(void);
+
+// Controls
+void showControls(void);
 
 /***************************** GLOBAL VARIABLES ******************************/
 // Modes
@@ -72,6 +123,9 @@ static float velocity[3] = { 0.0, 1.0, 1.0 };
 static float position[3] = { 0.0, 1.0, 0.0 };
 static float turn_angle = 0;
 
+// Rain particles
+raindrop_t raindrops[NUM_RAINDROPS];
+
 // Textures
 GLuint tex_road, tex_road_border;
 GLuint tex_sign1, tex_sign2, tex_sign3, tex_sign4, tex_sign5, tex_sign6;
@@ -82,14 +136,6 @@ GLuint tex_skyline;
 // Other
 static int lamps[] = { GL_LIGHT2, GL_LIGHT3, GL_LIGHT4, GL_LIGHT5 };
 
-typedef struct {
-    float position[3];
-//    float velocity[3];
-    float speed;
-    float length;
-} raindrop_t;
-
-raindrop_t raindrops[NUM_RAINDROPS];
 
 /***************************** HELPER FUNCTIONS ******************************/
 
@@ -97,7 +143,7 @@ bool outsideTunnel(int z) {
     return z != 0 && z % (DISTANCE_BETWEEN_TUNNELS + TUNNEL_LENGTH) < DISTANCE_BETWEEN_TUNNELS;
 }
 
-void initializeRaindrop(raindrop_t *raindrop) {
+void initializeRaindrop(raindrop_t* raindrop) {
     static std::random_device rd;     // only used once to initialise (seed) engine
     static std::mt19937 rng(rd());    // random-number engine used (Mersenne-Twister in this case)
     static std::uniform_int_distribution<int> speed_uni(MIN_RAINDROP_SPEED, MAX_RAINDROP_SPEED);
@@ -110,7 +156,7 @@ void initializeRaindrop(raindrop_t *raindrop) {
     // Since we initialize before transforming the camera, the coordinate system 
     // we must use is that of the camera
     static std::uniform_int_distribution<> X_uni(-6, 6);
-    static std::uniform_int_distribution<int> Y_uni(1, 3);
+    static std::uniform_int_distribution<int> Y_uni(1, 8);
     static std::uniform_int_distribution<int> Z_uni(-RENDER_DISTANCE / 3, -1.5);
 
     raindrop->position[X] = X_uni(rng);
@@ -118,7 +164,7 @@ void initializeRaindrop(raindrop_t *raindrop) {
     raindrop->position[Z] = Z_uni(rng);
 
     raindrop->speed = speed_uni(rng);
-    raindrop->length = (raindrop->speed / (MAX_RAINDROP_SPEED * 1.2 )) ;
+    raindrop->length = (raindrop->speed / (MAX_RAINDROP_SPEED * 3 )) ;
 }
 
 raindrop_t createNewRaindrop() {
@@ -136,7 +182,7 @@ void createRaindrops() {
 }
 
 
-void displayRain() {
+void updateAndRenderRain() {
     for (int i = 0; i < NUM_RAINDROPS; i++) {
         // Update
         raindrops[i].position[Y] -= raindrops[i].speed / SECOND_IN_MILLIS;
@@ -147,7 +193,6 @@ void displayRain() {
         if (raindrops[i].position[Y] <= 0) {
             initializeRaindrop(raindrops + i);
         }
-
 
         // Draw raindrop
         glColor3f(0.5, 0.5, 1.0);
@@ -164,25 +209,6 @@ void displayRain() {
             );
         glEnd();
      
-
-
-        /*
-        // Update values
-        //Move
-        // Adjust slowdown for speed!
-        par_sys[loop].ypos += par_sys[loop].vel / (slowdown*1000);
-        par_sys[loop].vel += par_sys[loop].gravity;
-        // Decay
-        par_sys[loop].life -= par_sys[loop].fade;
-
-        if (par_sys[loop].ypos <= -10) {
-            par_sys[loop].life = -1.0;
-        }
-        //Revive
-        if (par_sys[loop].life < 0.0) {
-            initParticles(loop);
-        }
-        */
     }
 }
 void loadTextures() {
@@ -254,16 +280,6 @@ bool insideRoadBorder(float nextX, float nextZ) {
     bool left_of_right_border = (nextX <= road_tracing(nextZ) + ROAD_WIDTH - 0.7);
     bool right_of_left_border = (nextX >= road_tracing(nextZ) - ROAD_WIDTH + 0.7);
     return (left_of_right_border && right_of_left_border);
-}
-
-// Draw a rectangle assuming parameters in counterclockwise order
-void drawRectangle(GLfloat* v0, GLfloat* v1, GLfloat* v2, GLfloat* v3) {
-    glBegin(GL_TRIANGLE_STRIP);
-       glVertex3f(v0[0], v0[1], v0[2]); 
-       glVertex3f(v1[0], v1[1], v1[2]); 
-       glVertex3f(v3[0], v3[1], v3[2]); 
-       glVertex3f(v2[0], v2[1], v2[2]); 
-    glEnd();
 }
 
 void drawCylindricalSupport(GLfloat* pos, GLfloat radius, GLfloat height, GLfloat slices) {
@@ -511,7 +527,7 @@ void showControls() {
     std::cout << "\tESC: exit." << endl;
 }
 
-void displaySkyline(int radius) {
+void renderSkyline(int radius) {
     static GLUquadric *quadric;
     quadric = gluNewQuadric();
 
@@ -744,7 +760,7 @@ void display() {
     configureHeadlight();
 
     if (weather_mode == RAINFALL) {
-        displayRain();
+        updateAndRenderRain();
     }
     
     gluLookAt(
@@ -755,7 +771,7 @@ void display() {
    
     // Camera-independent elements
     displayRoad(RENDER_DISTANCE);
-    displaySkyline(RENDER_DISTANCE);
+    renderSkyline(RENDER_DISTANCE);
 
 
 	glutSwapBuffers();
@@ -881,7 +897,6 @@ void onKey(unsigned char key, int x, int y) {
         case 'w':
         case 'W':
             weather_mode = (weather_mode == RAINFALL) ? CLEAR : RAINFALL;
-            cout << "Changing weather mode to: " << weather_mode << endl;
             break;
 
         case 'p':
