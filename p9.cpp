@@ -150,17 +150,10 @@ bool outsideTunnel(int z) {
 
 void initializeRaindrop(raindrop_t* raindrop) {
     static std::uniform_int_distribution<int> speed_uni(MIN_RAINDROP_SPEED, MAX_RAINDROP_SPEED);
-    /*
-    if not generating rain before camera transform
-    static std::uniform_int_distribution<int> X_uni(-25, 25);
+
+    static std::uniform_int_distribution<int> X_uni(-8, 8);
     static std::uniform_int_distribution<int> Y_uni(3, 7);
-    static std::uniform_int_distribution<int> Z_uni(0.5, RENDER_DISTANCE / 3);
-    */
-    // Since we initialize before transforming the camera, the coordinate system 
-    // we must use is that of the camera
-    static std::uniform_int_distribution<> X_uni(-6, 6);
-    static std::uniform_int_distribution<int> Y_uni(1, 8);
-    static std::uniform_int_distribution<int> Z_uni(-RENDER_DISTANCE / 3, -1.5);
+    static std::uniform_int_distribution<int> Z_uni(1.5, RENDER_DISTANCE / 3);
 
     raindrop->position[X] = X_uni(rng);
     raindrop->position[Y] = Y_uni(rng); 
@@ -178,8 +171,6 @@ raindrop_t createNewRaindrop() {
 }
 
 void createRaindrops() {
-     
-    // TODO: random inclination of drops (as if wind)
     for (int i = 0; i < NUM_RAINDROPS; i++) {
         raindrops[i] = createNewRaindrop();
     }
@@ -187,8 +178,11 @@ void createRaindrops() {
 
 void changeRainVelocity() {
     static std::uniform_int_distribution<> X_uni(0, 360);
+    static std::uniform_int_distribution<> Z_uni(0, 360);
     
     rain_velocity[X] = sin(X_uni(rng));
+    rain_velocity[Y] = -1.0; // it wouldn't make sense for the drops to not drop :)
+    rain_velocity[Z] = cos(Z_uni(rng));
 }
 
 void createRain() {
@@ -203,7 +197,7 @@ void updateAndRenderRain() {
         raindrops[i].position[Y] += raindrops[i].speed*rain_velocity[Y] / SECOND_IN_MILLIS;
         raindrops[i].position[Z] += raindrops[i].speed*rain_velocity[Z] / SECOND_IN_MILLIS;
 
-        if (!outsideTunnel(-raindrops[i].position[Z]+position[Z]))
+        if (!outsideTunnel(raindrops[i].position[Z]+position[Z]))
             continue;
 
         if (raindrops[i].position[Y] <= 0) {
@@ -217,12 +211,12 @@ void updateAndRenderRain() {
         glVertex3f(
                 raindrops[i].position[X], 
                 raindrops[i].position[Y], 
-                raindrops[i].position[Z]
+                raindrops[i].position[Z] + position[Z]
             );
         glVertex3f(
                 raindrops[i].position[X] + raindrops[i].length*rain_velocity[X],
                 raindrops[i].position[Y] + raindrops[i].length*rain_velocity[Y],
-                raindrops[i].position[Z] + raindrops[i].length*rain_velocity[Z]
+                raindrops[i].position[Z] + position[Z] + raindrops[i].length*rain_velocity[Z]
             );
         glEnd();
         glPopAttrib();
@@ -288,7 +282,6 @@ void loadTextures() {
 	loadImageFile((char*)"assets/background_skyline_long.jpg");
 
 }
-
 
 float road_tracing(float u) {
     return ROAD_AMPLITUDE + ROAD_AMPLITUDE * sin(2 * M_PI * (u - ROAD_PERIOD / 4) / ROAD_PERIOD);
@@ -386,16 +379,16 @@ void setSignMaterialAndTexture(int signs_passed) {
     else if (signs_passed == 1) {
         glBindTexture(GL_TEXTURE_2D, tex_sign2);
     }
-    else if (signs_passed % 4 == 1){
+    else if (signs_passed % 4 == 0){
         glBindTexture(GL_TEXTURE_2D, tex_sign3);
     }
-    else if (signs_passed % 4 == 2) {
+    else if (signs_passed % 4 == 1) {
         glBindTexture(GL_TEXTURE_2D, tex_sign4);
     }
-    else if (signs_passed % 4 == 3){
+    else if (signs_passed % 4 == 2){
         glBindTexture(GL_TEXTURE_2D, tex_sign5);
     }
-    else if (signs_passed % 4 == 4) {
+    else if (signs_passed % 4 == 3) {
         glBindTexture(GL_TEXTURE_2D, tex_sign6);
     }
 
@@ -425,7 +418,6 @@ void setLampMaterialAndTexture() {
 // Configures lighting, adds geometry to lighting and controls where signs appear 
 void configureRoad() {
     // TODO: fix spheres with no light
-    // TODO: fix streetlamp flicker on furthest lamps
     static float SL_z[NUM_STREETLAMPS] = { DISTANCE_BETWEEN_LAMPS, 
                                            2 * DISTANCE_BETWEEN_LAMPS, 
                                            3 * DISTANCE_BETWEEN_LAMPS,
@@ -488,7 +480,6 @@ void configureRoad() {
 
             positions_SL[i][X] = road_tracing(SL_z[i]); // sign lamp goes on middle
             directions_SL[i][X] = 0.0; // pointing down
-
         }
         // Render lamp supports for outside tunnel
         else if (outsideTunnel(SL_z[i])) {
@@ -693,7 +684,6 @@ void displayRoad(int length) {
             renderRoadCeiling(i, ROAD_TUNNEL_HEIGHT);
             glPopMatrix();
         }
-
 	}
 
     configureRoad();
@@ -709,7 +699,6 @@ void setupLighting() {
     glLightfv(GL_LIGHT0, GL_AMBIENT, A0);
     glLightfv(GL_LIGHT0, GL_DIFFUSE, D0);
     glLightfv(GL_LIGHT0, GL_SPECULAR, S0);
-   
 
     // Vehicle headlight
     GLfloat A1[] = { 0.9, 0.9, 0.9, 1.0 };
@@ -751,7 +740,6 @@ void init() {
 
     setupLighting();
 
-    //createRaindrops();
     createRain();
 
 	glClearColor(0, 0, 0, 1);
@@ -778,10 +766,6 @@ void display() {
     // Camera-dependent elements
     configureMoonlight();
     configureHeadlight();
-
-    if (weather_mode == RAINFALL) {
-        updateAndRenderRain();
-    }
     
     gluLookAt(
            position[X], position[Y], position[Z], 
@@ -792,6 +776,9 @@ void display() {
     // Camera-independent elements
     displayRoad(RENDER_DISTANCE);
     renderSkyline(RENDER_DISTANCE);
+    if (weather_mode == RAINFALL) {
+        updateAndRenderRain();
+    }
 
 
 	glutSwapBuffers();
@@ -837,12 +824,10 @@ void onTimer(int interval) {
                 position[X] += displacement * -(road_tracing(position[Z]))/5;
             }
         }
-
     }
     else {
         position[X] += displacement * velocity[X];
         position[Z] += displacement * velocity[Z];
-
     }
 
 
@@ -926,7 +911,6 @@ void onKey(unsigned char key, int x, int y) {
 
         case 'p':
         case 'P':
-            // TODO: change to first-person|third-person|birds-eye-view
             camera_mode = (camera_mode == PLAYER_VIEW) ? BIRDS_EYE_VIEW : PLAYER_VIEW; 
             position[Y] = (position[Y] == 1.0) ? 150 : 1.0;
             if (glIsEnabled(GL_LIGHT1))
@@ -938,7 +922,6 @@ void onKey(unsigned char key, int x, int y) {
         case 27: // esc
             exit(0);
 	}
-
 }
 
 int main(int argc, char** argv) {
