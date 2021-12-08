@@ -16,7 +16,7 @@
 // General game behaviour
 #define FPS 60
 #define SPEED_INCREMENT 0.4f
-#define MAX_SPEED 50
+#define MAX_SPEED 30
 #define ANGLE_INCREMENT 0.5f
 #define MAX_ANGLE 45
 
@@ -54,7 +54,7 @@
 #define Z_FAR 200
 
 // Rain
-#define NUM_RAINDROPS 2000
+#define NUM_RAINDROPS 3000
 #define MIN_RAINDROP_SPEED 50
 #define MAX_RAINDROP_SPEED 500
 
@@ -87,6 +87,7 @@ void loadTextures(void);
 void setSupportMaterialAndTexture(void);
 void setSignMaterialAndTexture(int);
 void setLampMaterialAndTexture(void);
+void setGroundMaterialAndTexture(void);
 void setRoadMaterialAndTexture(void);
 void setRoadBorderMaterialAndTexture(void);
 void setTunnelWallMaterialAndTexture(void); 
@@ -106,6 +107,7 @@ void renderRoad(int, int, int);
 void renderRoadWall(int, int, float);
 void renderRoadCeiling(int, float);
 void renderSkyline(int);
+void renderGround(float);
 bool atHighQualityRoadPosition(int);
 
 // Configuration of scene
@@ -142,6 +144,7 @@ static float rain_velocity[3] = { 0.0, -1.0, 0.0 };
 
 // Textures
 GLuint tex_road, tex_road_border;
+GLuint tex_ground;
 GLuint tex_sign1, tex_sign2, tex_sign3, tex_sign4, tex_sign5, tex_sign6;
 GLuint tex_support, tex_lamp;
 GLuint tex_tunnel_wall, tex_tunnel_ceiling;
@@ -154,6 +157,7 @@ static std::mt19937 rng(rd());    // random-number engine used (Mersenne-Twister
 
 // Other
 static int lamps[] = { GL_LIGHT2, GL_LIGHT3, GL_LIGHT4, GL_LIGHT5 };
+static int num_sidelengths_passed = 1;
 
 /***************************** HELPER FUNCTIONS ******************************/
 
@@ -185,8 +189,8 @@ void renderTree(GLfloat* tree_position) {
 
 void renderTrees(float z) {
     for (int i = 1; i < NUM_TREES_X; i++) {
-        GLfloat left_tree[]  = { road_tracing(z) + ROAD_WIDTH + X_BETWEEN_TREES * i, -1, z };
-        GLfloat right_tree[] = { road_tracing(z) - ROAD_WIDTH - X_BETWEEN_TREES * i, -1, z };
+        GLfloat left_tree[]  = { road_tracing(z) + ROAD_WIDTH + X_BETWEEN_TREES * i, -2, z };
+        GLfloat right_tree[] = { road_tracing(z) - ROAD_WIDTH - X_BETWEEN_TREES * i, -2, z };
         renderTree(left_tree);
         renderTree(right_tree);
     }
@@ -199,7 +203,7 @@ bool outsideTunnel(int z) {
 void initializeRaindrop(raindrop_t* raindrop) {
     static std::uniform_int_distribution<int> speed_uni(MIN_RAINDROP_SPEED, MAX_RAINDROP_SPEED);
 
-    static std::uniform_int_distribution<int> X_uni(-8, 8);
+    static std::uniform_int_distribution<int> X_uni(-20, 20);
     static std::uniform_int_distribution<int> Y_uni(3, 7);
     static std::uniform_int_distribution<int> Z_uni(1.5, RENDER_DISTANCE / 3);
 
@@ -253,8 +257,9 @@ void updateAndRenderRain() {
         }
 
         // Draw raindrop
+        glPushMatrix();
         glPushAttrib(GL_CURRENT_BIT);
-        glColor3f(0.5, 0.5, 1.0);
+        glColor3f(0.1, 0.1, 1.0);
         glBegin(GL_LINES);
         glVertex3f(
                 raindrops[i].position[X], 
@@ -268,6 +273,7 @@ void updateAndRenderRain() {
             );
         glEnd();
         glPopAttrib();
+        glPopMatrix();
      
     }
 }
@@ -276,6 +282,10 @@ void loadTextures() {
     glGenTextures(1, &tex_road);
 	glBindTexture(GL_TEXTURE_2D, tex_road);
 	loadImageFile((char*)"assets/road.jpg");
+
+    glGenTextures(1, &tex_ground);
+	glBindTexture(GL_TEXTURE_2D, tex_ground);
+	loadImageFile((char*)"assets/grass.jpg");
 
     glGenTextures(1, &tex_road_border);
 	glBindTexture(GL_TEXTURE_2D, tex_road_border);
@@ -585,6 +595,35 @@ void showControls() {
     std::cout << "\tESC: exit." << endl;
 }
 
+void renderGround(float sidelength) {
+    if (position[Z] + RENDER_DISTANCE > sidelength*num_sidelengths_passed) {
+        num_sidelengths_passed++;
+    }
+    setGroundMaterialAndTexture();
+    GLfloat top_right[] = {
+        sidelength * num_sidelengths_passed, 
+        -1, 
+        sidelength * num_sidelengths_passed
+    };
+    GLfloat top_left[]  =  { 
+        -sidelength * num_sidelengths_passed,
+        -1,
+        sidelength * num_sidelengths_passed
+    };
+    GLfloat bottom_left[] = { 
+        -sidelength * num_sidelengths_passed,
+        -1,
+        -sidelength * num_sidelengths_passed
+    };
+    GLfloat bottom_right[] = { 
+        sidelength * num_sidelengths_passed,
+        -1,
+        -sidelength * num_sidelengths_passed
+    };
+
+    quadtex(top_right, top_left, bottom_left, bottom_right, 20, 0, 20, 0, 1, 1);
+}
+
 void renderSkyline(int radius) {
     static GLUquadric *quadric;
     quadric = gluNewQuadric();
@@ -600,6 +639,20 @@ void renderSkyline(int radius) {
 	glRotatef(-90, 1, 0, 0);
 	gluCylinder(quadric, radius, radius, 100, 50, 50);
 	glPopMatrix();
+}
+
+void setGroundMaterialAndTexture() {
+    static GLfloat D[] = { 0.8, 0.8, 0.8 };
+    static GLfloat S[] = { 0.3, 0.3, 0.3 };
+    static float BE = 2;
+
+    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, D);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, S);
+    glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, BE);
+
+    glBindTexture(GL_TEXTURE_2D, tex_ground);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 }
 
 void setRoadMaterialAndTexture() {
@@ -828,6 +881,7 @@ void display() {
     // Camera-independent elements
     displayRoad(RENDER_DISTANCE);
     renderSkyline(RENDER_DISTANCE);
+    renderGround(RENDER_DISTANCE);
     if (weather_mode == RAINFALL) {
         updateAndRenderRain();
     }
