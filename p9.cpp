@@ -15,9 +15,9 @@
 
 // General game behaviour
 #define FPS 60
-#define SPEED_INCREMENT 0.4
+#define SPEED_INCREMENT 0.4f
 #define MAX_SPEED 50
-#define ANGLE_INCREMENT 0.5
+#define ANGLE_INCREMENT 0.5f
 #define MAX_ANGLE 45
 
 // Road
@@ -25,7 +25,7 @@
 #define ROAD_PERIOD 300
 #define RENDER_DISTANCE 150
 #define ROAD_WIDTH 8
-#define ROAD_BORDER_HEIGHT 0.4
+#define ROAD_BORDER_HEIGHT 0.4f
 #define ROAD_TUNNEL_HEIGHT 4
 #define DISTANCE_BETWEEN_TUNNELS 800
 #define TUNNEL_LENGTH 400 
@@ -33,6 +33,14 @@
 #define LAMP_CYLINDER_RADIUS 0.2f
 #define NUM_LAMPS_BETWEEN_SIGNS 5
 #define SIGN_HEIGHT 4
+#define Z_BETWEEN_TREES 15
+#define X_BETWEEN_TREES 4.5f 
+#define NUM_TREES_X 4
+#define TREE_TRUNK_RADIUS 0.2f
+#define TREE_TRUNK_HEIGHT 3
+#define TREE_CONE_BASE 1
+#define TREE_CONE_HEIGHT 5
+
 #define QUAD_DENSITY 4
 
 // Lighting
@@ -106,6 +114,11 @@ void configureMoonlight(void);
 void configureHeadlight(void);
 void setupLighting(void);
 
+// Trees
+void renderTrees(float);
+void renderTree(GLfloat*);
+bool atTreePosition(int);
+
 // Controls
 void showControls(void);
 
@@ -143,6 +156,41 @@ static std::mt19937 rng(rd());    // random-number engine used (Mersenne-Twister
 static int lamps[] = { GL_LIGHT2, GL_LIGHT3, GL_LIGHT4, GL_LIGHT5 };
 
 /***************************** HELPER FUNCTIONS ******************************/
+
+bool atTreePosition(int z) {
+    return outsideTunnel(z) && 
+        z % Z_BETWEEN_TREES == 0 && 
+        //z - position[Z] > 0 && 
+        z - position[Z] < 100; 
+}
+
+void renderTree(GLfloat* tree_position) {
+    setSupportMaterialAndTexture();
+    drawCylindricalSupport(
+            tree_position,
+            TREE_TRUNK_RADIUS,
+            TREE_TRUNK_HEIGHT, 
+            20
+         );
+
+    glPushMatrix();
+    glPushAttrib(GL_CURRENT_BIT);
+    glColor3f(0.2, 1.0, 0.2);
+    glTranslatef(tree_position[X], tree_position[Y]+TREE_TRUNK_HEIGHT, tree_position[Z]);
+    glRotatef(-90, 1, 0, 0);
+    glutSolidCone(TREE_CONE_BASE, TREE_CONE_HEIGHT, 10, 10);
+    glPopAttrib();
+    glPopMatrix();
+}
+
+void renderTrees(float z) {
+    for (int i = 1; i < NUM_TREES_X; i++) {
+        GLfloat left_tree[]  = { road_tracing(z) + ROAD_WIDTH + X_BETWEEN_TREES * i, -1, z };
+        GLfloat right_tree[] = { road_tracing(z) - ROAD_WIDTH - X_BETWEEN_TREES * i, -1, z };
+        renderTree(left_tree);
+        renderTree(right_tree);
+    }
+}
 
 bool outsideTunnel(int z) {
     return z != 0 && z % (DISTANCE_BETWEEN_TUNNELS + TUNNEL_LENGTH) < DISTANCE_BETWEEN_TUNNELS;
@@ -670,6 +718,11 @@ void displayRoad(int length) {
         renderRoadWall(i,  1, ROAD_BORDER_HEIGHT);
         glPopMatrix();
 
+        // Trees
+        if (atTreePosition(i)) {
+            renderTrees(i);
+        }
+
         // Tunnel
         if (!outsideTunnel(i)) {
             glPushMatrix();
@@ -685,7 +738,6 @@ void displayRoad(int length) {
             glPopMatrix();
         }
 	}
-
     configureRoad();
 }
 
