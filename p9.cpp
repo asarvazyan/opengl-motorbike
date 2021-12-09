@@ -398,6 +398,7 @@ void setSupportMaterialAndTexture() {
     glBindTexture(GL_TEXTURE_2D, tex_support);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 }
 
 void renderSign(float z) {
@@ -457,6 +458,7 @@ void setSignMaterialAndTexture(int signs_passed) {
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 }
 
 void renderLamp(float x, float y, float z) {
@@ -476,6 +478,7 @@ void setLampMaterialAndTexture() {
     glBindTexture(GL_TEXTURE_2D, tex_lamp);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 }
 
 // Configures lighting, adds geometry to lighting and controls where signs appear 
@@ -637,6 +640,7 @@ void renderSkyline(int radius) {
 	glBindTexture(GL_TEXTURE_2D, tex_skyline);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 	gluQuadricTexture(quadric, 1);
 
 	glTranslatef(position[X], -30, position[Z]);
@@ -658,6 +662,7 @@ void setGroundMaterialAndTexture() {
     glBindTexture(GL_TEXTURE_2D, tex_ground);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 }
 
 void setRoadMaterialAndTexture() {
@@ -672,6 +677,7 @@ void setRoadMaterialAndTexture() {
     glBindTexture(GL_TEXTURE_2D, tex_road);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 }
 
 void setRoadBorderMaterialAndTexture() {
@@ -686,6 +692,7 @@ void setRoadBorderMaterialAndTexture() {
     glBindTexture(GL_TEXTURE_2D, tex_road_border);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 }
 
 void setTunnelWallMaterialAndTexture() {
@@ -700,6 +707,20 @@ void setTunnelWallMaterialAndTexture() {
     glBindTexture(GL_TEXTURE_2D, tex_tunnel_wall);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+
+}
+
+void setBikeTexture() {
+    if (camera_mode == PLAYER_VIEW)
+        glBindTexture(GL_TEXTURE_2D, tex_bike_pov);
+    else if (camera_mode == BIRDS_EYE_VIEW)
+        glBindTexture(GL_TEXTURE_2D, tex_bike_pov);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+
 }
 
 void setTunnelCeilingMaterialAndTexture() {
@@ -714,6 +735,7 @@ void setTunnelCeilingMaterialAndTexture() {
     glBindTexture(GL_TEXTURE_2D, tex_tunnel_ceiling);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 }
 
 void renderRoad(int z, int horizontal_slices, int vertical_slices) {
@@ -850,6 +872,53 @@ void showHUD() {
     }
 }
 
+void showBike() {
+    glEnable(GL_BLEND);
+    setBikeTexture();
+    glDepthMask(GL_FALSE);
+    
+    if (camera_mode == PLAYER_VIEW) {
+        /*
+        float width = 1, height = 1;
+        GLfloat top_right[]    = { position[X] - width, height , position[Z] + 2 };
+        GLfloat top_left[]     = { position[X] + width, height , position[Z] + 2 };
+        GLfloat bottom_left[]  = { position[X] + width, 0, position[Z] + 2 };
+        GLfloat bottom_right[] = { position[X] - width, 0, position[Z] + 2 };
+
+        quadtex(top_right, top_left, bottom_left, bottom_right, 1, 0, 1, 0, 1, 1);
+        */
+
+        float v0[3] = { -0.7,  -1.05, 0 };
+        float v1[3] = {  0.7,  -1.05, 0 };
+        float v2[3] = {  0.5,   0, 0 };
+        float v3[3] = { -0.5,   0, 0 };
+
+        glPushMatrix();
+		glLoadIdentity();
+		glMatrixMode(GL_PROJECTION);
+		glPushMatrix();
+		glLoadIdentity();
+		glOrtho(-1, 1, -1, 1, -1, 1);
+		glMatrixMode(GL_MODELVIEW);
+		gluLookAt(0, 0, 0, 0, 0, -1, 0, 1, 0);
+
+        quadtex(v0, v1, v2, v3);
+
+        glMatrixMode(GL_PROJECTION);
+		glPopMatrix();
+
+		glMatrixMode(GL_MODELVIEW);
+		glPopMatrix();
+
+    }
+    else if (camera_mode == BIRDS_EYE_VIEW) {
+
+        cout << "HUD not implemented for BEV POV." << endl;
+    }
+    glDepthMask(GL_TRUE);
+    glDisable(GL_BLEND);
+}
+
 /********************************* CALLBACKS *********************************/
 void init() {
 
@@ -888,8 +957,9 @@ void display() {
     // Camera-dependent elements
     configureMoonlight();
     configureHeadlight();
-    if (hud_mode == HUD_ON)
+    if (hud_mode == HUD_ON) {
         showHUD();
+    }
      
     gluLookAt(
            position[X], position[Y], position[Z], 
@@ -911,6 +981,9 @@ void display() {
         glFogf(GL_FOG_DENSITY, 0.05);
     }
 
+
+    if (hud_mode == HUD_ON)
+        showBike();
 
 	glutSwapBuffers();
 }
