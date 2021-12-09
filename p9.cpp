@@ -886,6 +886,12 @@ void display() {
         updateAndRenderRain();
     }
 
+    if (glIsEnabled(GL_FOG)) {
+        GLfloat fog_color[]={ 0.4, 0.4, 0.4, 0.6}; // Color de la niebla
+        glFogfv(GL_FOG_COLOR, fog_color);
+        glFogf(GL_FOG_DENSITY, 0.05);
+    }
+
 
 	glutSwapBuffers();
 }
@@ -985,6 +991,17 @@ void onKey(unsigned char key, int x, int y) {
             }
             else {
                 glEnable(GL_TEXTURE_2D);
+            }
+
+            break;
+
+        case 'n':
+        case 'N':
+            if (glIsEnabled(GL_FOG)){ 
+                glDisable(GL_FOG);
+            }
+            else {
+                glEnable(GL_FOG);
             }
 
             break;
