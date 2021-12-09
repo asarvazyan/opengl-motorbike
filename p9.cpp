@@ -897,9 +897,8 @@ void showBike() {
         float v1[3] = {  0.7, -1.05, 0 };
         float v2[3] = {  0.5,     0, 0 };
         float v3[3] = { -0.5,     0, 0 };
-
+        
         quadtex(v0, v1, v2, v3);
-
     }
 
     else if (camera_mode == BIRDS_EYE_VIEW && outsideTunnel(position[Z])) {
