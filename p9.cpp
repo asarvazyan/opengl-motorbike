@@ -128,9 +128,9 @@ void showControls(void);
 // Modes
 static int draw_mode; // GL_LINE or GL_FILL
 static enum {PLAYER_VIEW, BIRDS_EYE_VIEW} camera_mode;
-static enum {DAY, NIGHT} lighting_mode;
 static enum {CLEAR, RAINFALL} weather_mode;
 static enum {COLLISIONS, NO_COLLISIONS} collision_mode;
+static enum {HUD_ON, HUD_OFF} hud_mode;
 
 // Vehicle physics
 static float speed = 0.0;
@@ -149,6 +149,7 @@ GLuint tex_sign1, tex_sign2, tex_sign3, tex_sign4, tex_sign5, tex_sign6;
 GLuint tex_support, tex_lamp;
 GLuint tex_tunnel_wall, tex_tunnel_ceiling;
 GLuint tex_skyline;
+GLuint tex_bike_pov;
 
 // Random numbers
 // source: https://stackoverflow.com/questions/288739/generate-random-numbers-uniformly-over-an-entire-range
@@ -282,6 +283,10 @@ void loadTextures() {
     glGenTextures(1, &tex_road);
 	glBindTexture(GL_TEXTURE_2D, tex_road);
 	loadImageFile((char*)"assets/road.jpg");
+    
+    glGenTextures(1, &tex_bike_pov);
+	glBindTexture(GL_TEXTURE_2D, tex_bike_pov);
+	loadImageFile((char*)"assets/moto_pov.png");
 
     glGenTextures(1, &tex_ground);
 	glBindTexture(GL_TEXTURE_2D, tex_ground);
@@ -834,6 +839,17 @@ void setupLighting() {
     }
 }
 
+void showHUD() {
+    if (camera_mode == PLAYER_VIEW) {
+
+        cout << "HUD not implemented for player POV." << endl;
+    }
+    else if (camera_mode == BIRDS_EYE_VIEW) {
+
+        cout << "HUD not implemented for BEV POV." << endl;
+    }
+}
+
 /********************************* CALLBACKS *********************************/
 void init() {
 
@@ -850,6 +866,7 @@ void init() {
 	glClearColor(0, 0, 0, 1);
 
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_NORMALIZE);
     glEnable(GL_TEXTURE_2D);
 
     glEnable(GL_LIGHT0);
@@ -871,7 +888,9 @@ void display() {
     // Camera-dependent elements
     configureMoonlight();
     configureHeadlight();
-    
+    if (hud_mode == HUD_ON)
+        showHUD();
+     
     gluLookAt(
            position[X], position[Y], position[Z], 
            position[X] + velocity[X], velocity[Y], position[Z] + velocity[Z], 
@@ -995,6 +1014,11 @@ void onKey(unsigned char key, int x, int y) {
 
             break;
 
+        case 'c':
+        case 'C':
+            hud_mode = (hud_mode == HUD_ON) ? HUD_OFF : HUD_ON;
+            break;
+
         case 'n':
         case 'N':
             if (glIsEnabled(GL_FOG)){ 
@@ -1003,12 +1027,10 @@ void onKey(unsigned char key, int x, int y) {
             else {
                 glEnable(GL_FOG);
             }
-
             break;
 
         case 'l':
         case 'L':
-            lighting_mode = (lighting_mode == DAY) ? NIGHT : DAY;
             if (glIsEnabled(GL_LIGHTING)){
                 glDisable(GL_LIGHTING);
             }
