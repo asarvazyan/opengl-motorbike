@@ -10,8 +10,8 @@
 /********************************* CONSTANTS *********************************/
 // Window
 #define PROJECT_NAME "Videojuego de motochoque"
-#define WINDOW_WIDTH 600
-#define WINDOW_HEIGHT 600
+#define WINDOW_WIDTH 854
+#define WINDOW_HEIGHT 480
 
 // General game behaviour
 #define FPS 60
@@ -605,6 +605,8 @@ void showControls() {
     std::cout << "\t'L' or 'l': toggle between night and day." << endl;
     std::cout << "\t'D' or 'd': toggle between active and inactive collision for the road." << endl;
     std::cout << "\t'W' or 'w': toggle between clear and rainy weather." << endl;
+    std::cout << "\t'N' or 'n': toggle between fog and no fog." << endl;
+    std::cout << "\t'C' or 'c': toggle between HUD and no HUD." << endl;
     std::cout << "\t'Y' or 'y': randomly change the wind (rain velocity). Effect only visible if rainy." << endl;
     std::cout << "\tESC: exit." << endl;
 }
@@ -870,11 +872,11 @@ void setupLighting() {
 void showHUD() {
     if (camera_mode == PLAYER_VIEW) {
 
-        cout << "HUD not implemented for player POV." << endl;
+        //cout << "HUD not implemented for player POV." << endl;
     }
     else if (camera_mode == BIRDS_EYE_VIEW) {
 
-        cout << "HUD not implemented for BEV POV." << endl;
+        //cout << "HUD not implemented for BEV POV." << endl;
     }
 }
 
