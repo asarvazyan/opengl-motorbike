@@ -149,7 +149,7 @@ GLuint tex_sign1, tex_sign2, tex_sign3, tex_sign4, tex_sign5, tex_sign6;
 GLuint tex_support, tex_lamp;
 GLuint tex_tunnel_wall, tex_tunnel_ceiling;
 GLuint tex_skyline;
-GLuint tex_bike_pov;
+GLuint tex_bike_pov, tex_bike_bev;
 
 // Random numbers
 // source: https://stackoverflow.com/questions/288739/generate-random-numbers-uniformly-over-an-entire-range
@@ -198,7 +198,9 @@ void renderTrees(float z) {
 }
 
 bool outsideTunnel(int z) {
-    return z != 0 && z % (DISTANCE_BETWEEN_TUNNELS + TUNNEL_LENGTH) < DISTANCE_BETWEEN_TUNNELS;
+    return (z > 0 && 
+            z % (DISTANCE_BETWEEN_TUNNELS + TUNNEL_LENGTH) < DISTANCE_BETWEEN_TUNNELS) 
+        || z <= 0;
 }
 
 void initializeRaindrop(raindrop_t* raindrop) {
@@ -286,7 +288,11 @@ void loadTextures() {
     
     glGenTextures(1, &tex_bike_pov);
 	glBindTexture(GL_TEXTURE_2D, tex_bike_pov);
-	loadImageFile((char*)"assets/moto_pov.png");
+	loadImageFile((char*)"assets/bike_pov.png");
+
+    glGenTextures(1, &tex_bike_bev);
+	glBindTexture(GL_TEXTURE_2D, tex_bike_bev);
+	loadImageFile((char*)"assets/bike_bev.png");
 
     glGenTextures(1, &tex_ground);
 	glBindTexture(GL_TEXTURE_2D, tex_ground);
@@ -715,7 +721,7 @@ void setBikeTexture() {
     if (camera_mode == PLAYER_VIEW)
         glBindTexture(GL_TEXTURE_2D, tex_bike_pov);
     else if (camera_mode == BIRDS_EYE_VIEW)
-        glBindTexture(GL_TEXTURE_2D, tex_bike_pov);
+        glBindTexture(GL_TEXTURE_2D, tex_bike_bev);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -877,44 +883,40 @@ void showBike() {
     setBikeTexture();
     glDepthMask(GL_FALSE);
     
+    glPushMatrix();
+    glLoadIdentity();
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(-1, 1, -1, 1, -1, 1);
+    glMatrixMode(GL_MODELVIEW);
+    gluLookAt(0, 0, 0, 0, 0, -1, 0, 1, 0);
+
     if (camera_mode == PLAYER_VIEW) {
-        /*
-        float width = 1, height = 1;
-        GLfloat top_right[]    = { position[X] - width, height , position[Z] + 2 };
-        GLfloat top_left[]     = { position[X] + width, height , position[Z] + 2 };
-        GLfloat bottom_left[]  = { position[X] + width, 0, position[Z] + 2 };
-        GLfloat bottom_right[] = { position[X] - width, 0, position[Z] + 2 };
-
-        quadtex(top_right, top_left, bottom_left, bottom_right, 1, 0, 1, 0, 1, 1);
-        */
-
-        float v0[3] = { -0.7,  -1.05, 0 };
-        float v1[3] = {  0.7,  -1.05, 0 };
-        float v2[3] = {  0.5,   0, 0 };
-        float v3[3] = { -0.5,   0, 0 };
-
-        glPushMatrix();
-		glLoadIdentity();
-		glMatrixMode(GL_PROJECTION);
-		glPushMatrix();
-		glLoadIdentity();
-		glOrtho(-1, 1, -1, 1, -1, 1);
-		glMatrixMode(GL_MODELVIEW);
-		gluLookAt(0, 0, 0, 0, 0, -1, 0, 1, 0);
+        float v0[3] = { -0.7, -1.05, 0 };
+        float v1[3] = {  0.7, -1.05, 0 };
+        float v2[3] = {  0.5,     0, 0 };
+        float v3[3] = { -0.5,     0, 0 };
 
         quadtex(v0, v1, v2, v3);
 
-        glMatrixMode(GL_PROJECTION);
-		glPopMatrix();
-
-		glMatrixMode(GL_MODELVIEW);
-		glPopMatrix();
-
     }
-    else if (camera_mode == BIRDS_EYE_VIEW) {
 
-        cout << "HUD not implemented for BEV POV." << endl;
+    else if (camera_mode == BIRDS_EYE_VIEW && outsideTunnel(position[Z])) {
+        float pov_to_bev_factor = 13;
+        float v0[3] = { -0.7f / pov_to_bev_factor, -2 / pov_to_bev_factor, 0 };
+        float v1[3] = {  0.7f / pov_to_bev_factor, -2 / pov_to_bev_factor, 0 };
+        float v2[3] = {  0.5f / pov_to_bev_factor,  0 / pov_to_bev_factor, 0 };
+        float v3[3] = { -0.5f / pov_to_bev_factor,  0 / pov_to_bev_factor, 0 };
+
+        quadtex(v0, v1, v2, v3);
     }
+
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
     glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);
 }
@@ -1130,7 +1132,7 @@ void onKey(unsigned char key, int x, int y) {
         case 'p':
         case 'P':
             camera_mode = (camera_mode == PLAYER_VIEW) ? BIRDS_EYE_VIEW : PLAYER_VIEW; 
-            position[Y] = (position[Y] == 1.0) ? 150 : 1.0;
+            position[Y] = (position[Y] == 1.0) ? 50 : 1.0;
             if (glIsEnabled(GL_LIGHT1))
                 glDisable(GL_LIGHT1);
             else
