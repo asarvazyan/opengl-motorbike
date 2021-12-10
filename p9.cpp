@@ -1,6 +1,7 @@
 #define _USE_MATH_DEFINES
 
 #include <iostream> 
+#include <iomanip>
 #include <cmath>
 #include <random>
 #include <GL/freeglut.h>
@@ -870,14 +871,49 @@ void setupLighting() {
 }
 
 void showHUD() {
-    if (camera_mode == PLAYER_VIEW) {
+    static int starting_time = glutGet(GLUT_ELAPSED_TIME);
+    static int previous = starting_time; 
+    static int frames = 0;
+    static int fps = FPS;
+    
+    int current = glutGet(GLUT_ELAPSED_TIME);
+    frames++; // each time this function is called a frame is presented to the user
 
-        //cout << "HUD not implemented for player POV." << endl;
-    }
-    else if (camera_mode == BIRDS_EYE_VIEW) {
+    std::stringstream speed_ss, fps_ss, time_ss, distance_ss;
 
-        //cout << "HUD not implemented for BEV POV." << endl;
+    speed_ss << std::setprecision(3) << speed << "\t m/s";
+    time_ss << (int)((current - starting_time) / SECOND_IN_MILLIS + 0.5)<< "\t s";
+    distance_ss << (int) position[Z] << "\t m";
+
+    fps_ss << std::setprecision(3) << fps << "\t fps";
+
+    if (current - previous >= SECOND_IN_MILLIS) {
+        fps = frames;
+        previous = current;
+        frames = 0;
+
     }
+
+    glPushMatrix();
+    glTranslatef(0.85, 0.85, 0);
+    texto(0, 0, (char *) speed_ss.str().c_str(), BLANCO);
+    glPopMatrix();
+
+    glPushMatrix();
+    glTranslatef(0.85, 0.80, 0);
+    texto(0, 0, (char *) time_ss.str().c_str(), BLANCO);
+    glPopMatrix();
+
+    glPushMatrix();
+    glTranslatef(0.85, 0.75, 0);
+    texto(0, 0, (char *) distance_ss.str().c_str(), BLANCO);
+    glPopMatrix();
+    
+
+    glPushMatrix();
+    glTranslatef(0.85, 0.70, 0);
+    texto(0, 0, (char *) fps_ss.str().c_str(), BLANCO);
+    glPopMatrix();
 }
 
 void showBike() {
@@ -912,6 +948,8 @@ void showBike() {
 
         quadtex(v0, v1, v2, v3);
     }
+
+    showHUD();
 
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
@@ -960,9 +998,6 @@ void display() {
     // Camera-dependent elements
     configureMoonlight();
     configureHeadlight();
-    if (hud_mode == HUD_ON) {
-        showHUD();
-    }
      
     gluLookAt(
            position[X], position[Y], position[Z], 
@@ -985,8 +1020,10 @@ void display() {
     }
 
 
-    if (hud_mode == HUD_ON)
+    if (hud_mode == HUD_ON) {
         showBike();
+    }
+
 
 	glutSwapBuffers();
 }
@@ -1019,8 +1056,12 @@ void onTimer(int interval) {
             position[Z] += displacement * velocity[Z];
         }
         else {
-            if (speed)
-                speed /= 2;
+            if (speed){
+                if (speed > 2)
+                    speed /= 2;
+                else
+                    speed = 0;
+            }
 
 	        displacement = elapsed * speed;
 
