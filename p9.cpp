@@ -53,6 +53,9 @@
 #define FOV_Y 45
 #define Z_NEAR 1
 #define Z_FAR 200
+#define PLAYER_Y 1.0f
+#define THIRD_PERSON_Y 2.0f
+#define BIRDS_EYE_Y 50.0f
 
 // Rain
 #define NUM_RAINDROPS 3000
@@ -128,7 +131,7 @@ void showControls(void);
 /***************************** GLOBAL VARIABLES ******************************/
 // Modes
 static int draw_mode; // GL_LINE or GL_FILL
-static enum {PLAYER_VIEW, BIRDS_EYE_VIEW} camera_mode;
+static enum {PLAYER_VIEW, THIRD_PERSON_VIEW, BIRDS_EYE_VIEW} camera_mode;
 static enum {CLEAR, RAINFALL} weather_mode;
 static enum {COLLISIONS, NO_COLLISIONS} collision_mode;
 static enum {HUD_ON, HUD_OFF} hud_mode;
@@ -150,7 +153,7 @@ GLuint tex_sign1, tex_sign2, tex_sign3, tex_sign4, tex_sign5, tex_sign6;
 GLuint tex_support, tex_lamp;
 GLuint tex_tunnel_wall, tex_tunnel_ceiling;
 GLuint tex_skyline;
-GLuint tex_bike_pov, tex_bike_bev;
+GLuint tex_bike_pov, tex_bike_bev, tex_bike_tpv;
 
 // Random numbers
 // source: https://stackoverflow.com/questions/288739/generate-random-numbers-uniformly-over-an-entire-range
@@ -294,6 +297,10 @@ void loadTextures() {
     glGenTextures(1, &tex_bike_bev);
 	glBindTexture(GL_TEXTURE_2D, tex_bike_bev);
 	loadImageFile((char*)"assets/bike_bev.png");
+
+    glGenTextures(1, &tex_bike_tpv);
+	glBindTexture(GL_TEXTURE_2D, tex_bike_tpv);
+	loadImageFile((char*)"assets/bike_tpv.png");
 
     glGenTextures(1, &tex_ground);
 	glBindTexture(GL_TEXTURE_2D, tex_ground);
@@ -655,7 +662,7 @@ void renderSkyline(int radius) {
 	glTranslatef(position[X], -30, position[Z]);
     glRotatef(91, 0, 1, 0);
 	glRotatef(-90, 1, 0, 0);
-	gluCylinder(quadric, radius, radius, 100, 50, 50);
+	gluCylinder(quadric, radius, radius, 110, 50, 50);
 	glPopMatrix();
 }
 
@@ -725,6 +732,8 @@ void setBikeTexture() {
         glBindTexture(GL_TEXTURE_2D, tex_bike_pov);
     else if (camera_mode == BIRDS_EYE_VIEW)
         glBindTexture(GL_TEXTURE_2D, tex_bike_bev);
+    else
+        glBindTexture(GL_TEXTURE_2D, tex_bike_tpv);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -954,7 +963,15 @@ void showBike() {
         
         quadtex(v0, v1, v2, v3);
     }
+    else if (camera_mode == THIRD_PERSON_VIEW) {
+        float v0[3] = { -0.3, -1.2, 0 };
+        float v1[3] = {  0.3, -1.2, 0 };
+        float v2[3] = {  0.3, -0.2, 0 };
+        float v3[3] = { -0.3, -0.2, 0 };
+        
+        quadtex(v0, v1, v2, v3);
 
+    }
     else if (camera_mode == BIRDS_EYE_VIEW && outsideTunnel(position[Z])) {
         float pov_to_bev_factor = 13;
         float v0[3] = { -0.7f / pov_to_bev_factor, -2 / pov_to_bev_factor, 0 };
@@ -1014,12 +1031,22 @@ void display() {
     // Camera-dependent elements
     configureMoonlight();
     configureHeadlight();
-     
-    gluLookAt(
-           position[X], position[Y], position[Z], 
-           position[X] + velocity[X], velocity[Y], position[Z] + velocity[Z], 
-           0, 1, 0
-        );
+    
+    if (camera_mode == THIRD_PERSON_VIEW) {
+        gluLookAt(
+               position[X], THIRD_PERSON_Y, position[Z], 
+               position[X] + velocity[X], THIRD_PERSON_Y/2 + velocity[Y], position[Z] + velocity[Z], 
+               0, 1, 0
+            );
+
+    }
+    else {
+        gluLookAt(
+               position[X], position[Y], position[Z], 
+               position[X] + velocity[X], velocity[Y], position[Z] + velocity[Z], 
+               0, 1, 0
+            );
+    }
    
     // Camera-independent elements
     displayRoad(RENDER_DISTANCE);
@@ -1189,12 +1216,26 @@ void onKey(unsigned char key, int x, int y) {
 
         case 'p':
         case 'P':
-            camera_mode = (camera_mode == PLAYER_VIEW) ? BIRDS_EYE_VIEW : PLAYER_VIEW; 
-            position[Y] = (position[Y] == 1.0) ? 50 : 1.0;
-            if (glIsEnabled(GL_LIGHT1))
-                glDisable(GL_LIGHT1);
-            else
-                glEnable(GL_LIGHT1);
+            switch (camera_mode) {
+                case PLAYER_VIEW:
+                    camera_mode = THIRD_PERSON_VIEW;
+                    if (!glIsEnabled(GL_LIGHT1))
+                        glEnable(GL_LIGHT1);
+                    break;
+                case THIRD_PERSON_VIEW:
+                    camera_mode = BIRDS_EYE_VIEW;
+                    position[Y] = BIRDS_EYE_Y;
+                    if (glIsEnabled(GL_LIGHT1))
+                        glDisable(GL_LIGHT1);
+                    break; 
+                default:
+                    camera_mode = PLAYER_VIEW;
+                    position[Y] = PLAYER_Y;
+                    if (!glIsEnabled(GL_LIGHT1))
+                        glEnable(GL_LIGHT1);
+                    break;
+            }
+
             break;
 
         case 27: // esc
