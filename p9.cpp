@@ -893,25 +893,41 @@ void showHUD() {
         frames = 0;
 
     }
-
+    
+    // Background of HUD text and arrow in dark for better readability
     glPushMatrix();
-    glTranslatef(0.85, 0.85, 0);
-    texto(0, 0, (char *) speed_ss.str().c_str(), BLANCO);
-    glPopMatrix();
+    glPushAttrib(GL_CURRENT_BIT);
+    glColor4f(0.2, 0.0, 0.7, 0.8);
+    setSupportMaterialAndTexture(); // any texture just for blending
 
-    glPushMatrix();
-    glTranslatef(0.85, 0.80, 0);
-    texto(0, 0, (char *) time_ss.str().c_str(), BLANCO);
-    glPopMatrix();
-
-    glPushMatrix();
-    glTranslatef(0.85, 0.75, 0);
-    texto(0, 0, (char *) distance_ss.str().c_str(), BLANCO);
+    glTranslatef(1, 1, 0);
+    glBegin(GL_TRIANGLE_STRIP);
+    glVertex3f( -0.2, -0.3, 0);
+    glVertex3f(  0.2, -0.3, 0);
+    glVertex3f( -0.2,  0, 0);
+    glVertex3f(  0.2,  0, 0);
+    glEnd();
+    glPopAttrib();
     glPopMatrix();
     
 
     glPushMatrix();
-    glTranslatef(0.85, 0.70, 0);
+    glTranslatef(0.85, 0.92, 0);
+    texto(0, 0, (char *) speed_ss.str().c_str(), BLANCO);
+    glPopMatrix();
+
+    glPushMatrix();
+    glTranslatef(0.85, 0.87, 0);
+    texto(0, 0, (char *) time_ss.str().c_str(), BLANCO);
+    glPopMatrix();
+
+    glPushMatrix();
+    glTranslatef(0.85, 0.82, 0);
+    texto(0, 0, (char *) distance_ss.str().c_str(), BLANCO);
+    glPopMatrix();
+    
+    glPushMatrix();
+    glTranslatef(0.85, 0.77, 0);
     texto(0, 0, (char *) fps_ss.str().c_str(), BLANCO);
     glPopMatrix();
 }
