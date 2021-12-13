@@ -913,8 +913,8 @@ void showHUD() {
     glBegin(GL_TRIANGLE_STRIP);
     glVertex3f( -0.2, -0.3, 0);
     glVertex3f(  0.2, -0.3, 0);
-    glVertex3f( -0.2,  0, 0);
-    glVertex3f(  0.2,  0, 0);
+    glVertex3f( -0.2,    0, 0);
+    glVertex3f(  0.2,    0, 0);
     glEnd();
     glPopAttrib();
     glPopMatrix();
@@ -922,22 +922,22 @@ void showHUD() {
 
     glPushMatrix();
     glTranslatef(0.85, 0.92, 0);
-    texto(0, 0, (char *) speed_ss.str().c_str(), BLANCO);
+    //texto(0, 0, (char *) speed_ss.str().c_str(), BLANCO);
     glPopMatrix();
 
     glPushMatrix();
     glTranslatef(0.85, 0.87, 0);
-    texto(0, 0, (char *) time_ss.str().c_str(), BLANCO);
+    //texto(0, 0, (char *) time_ss.str().c_str(), BLANCO);
     glPopMatrix();
 
     glPushMatrix();
     glTranslatef(0.85, 0.82, 0);
-    texto(0, 0, (char *) distance_ss.str().c_str(), BLANCO);
+    //texto(0, 0, (char *) distance_ss.str().c_str(), BLANCO);
     glPopMatrix();
     
     glPushMatrix();
     glTranslatef(0.85, 0.77, 0);
-    texto(0, 0, (char *) fps_ss.str().c_str(), BLANCO);
+    //texto(0, 0, (char *) fps_ss.str().c_str(), BLANCO);
     glPopMatrix();
 }
 
@@ -945,6 +945,8 @@ void showBike() {
     glEnable(GL_BLEND);
     setBikeTexture();
     glDepthMask(GL_FALSE);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
     
     glPushMatrix();
     glLoadIdentity();
@@ -982,13 +984,14 @@ void showBike() {
         quadtex(v0, v1, v2, v3);
     }
 
-    //showHUD();
+    showHUD();
 
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
 
     glMatrixMode(GL_MODELVIEW);
     glPopMatrix();
+    glDisable(GL_CULL_FACE);
     glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);
 }
@@ -1007,6 +1010,10 @@ void init() {
     createRain();
 
 	glClearColor(0, 0, 0, 1);
+
+    GLfloat fog_color[]={ 0.4, 0.4, 0.4, 0.6}; // Color de la niebla
+    glFogfv(GL_FOG_COLOR, fog_color);
+    glFogf(GL_FOG_DENSITY, 0.05);
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_NORMALIZE);
@@ -1056,11 +1063,6 @@ void display() {
         updateAndRenderRain();
     }
 
-    if (glIsEnabled(GL_FOG)) {
-        GLfloat fog_color[]={ 0.4, 0.4, 0.4, 0.6}; // Color de la niebla
-        glFogfv(GL_FOG_COLOR, fog_color);
-        glFogf(GL_FOG_DENSITY, 0.05);
-    }
 
 
     if (hud_mode == HUD_ON) {
