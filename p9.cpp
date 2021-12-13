@@ -982,7 +982,7 @@ void showBike() {
         quadtex(v0, v1, v2, v3);
     }
 
-    showHUD();
+    //showHUD();
 
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
