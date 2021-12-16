@@ -113,6 +113,7 @@ void renderRoadCeiling(int, float);
 void renderSkyline(int);
 void renderGround(float);
 void renderWindArrow(void);
+void renderArrow(void);
 bool atHighQualityRoadPosition(int);
 
 // Configuration of scene
