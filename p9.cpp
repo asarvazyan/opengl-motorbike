@@ -112,6 +112,7 @@ void renderRoadWall(int, int, float);
 void renderRoadCeiling(int, float);
 void renderSkyline(int);
 void renderGround(float);
+void renderWindArrow(void);
 bool atHighQualityRoadPosition(int);
 
 // Configuration of scene
@@ -125,8 +126,10 @@ void renderTrees(float);
 void renderTree(GLfloat*);
 bool atTreePosition(int);
 
-// Controls
+// Showing of elements
 void showControls(void);
+void showHUD(void);
+void showBike(void);
 
 /***************************** GLOBAL VARIABLES ******************************/
 // Modes
@@ -894,7 +897,6 @@ void renderArrow() {
     glEnd();
 }
 
-
 void renderWindArrow() {
     glPushMatrix();
     glPushAttrib(GL_CURRENT_BIT);
@@ -918,7 +920,6 @@ void renderWindArrow() {
     renderArrow();
     glPopAttrib();
     glPopMatrix();
-
 }
 
 void showHUD() {
