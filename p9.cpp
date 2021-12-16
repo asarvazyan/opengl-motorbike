@@ -907,8 +907,6 @@ void renderWindArrow() {
 
     float angle_arrow_rot = std::acos(dot / (mag1 * mag2)) / M_PI * 180;
 
-    std::cout << angle_arrow_rot << "\n";
-
     if (velocity[X] > rain_velocity[X]) angle_arrow_rot = 360-angle_arrow_rot;
 
     glTranslatef(0.8, -0.55, 0);
