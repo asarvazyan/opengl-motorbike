@@ -879,6 +879,50 @@ void setupLighting() {
     }
 }
 
+
+void renderArrow() {
+    glBegin(GL_TRIANGLE_STRIP);
+    glVertex3f(  0,  0, 0);
+    glVertex3f( -1, -1, 0);
+    glVertex3f(  1, -1, 0);
+    glEnd();
+
+    glBegin(GL_TRIANGLE_STRIP);
+    glVertex3f(  0,  0, 0);
+    glVertex3f( -0.7, -2, 0);
+    glVertex3f(  0.7, -2, 0);
+    glEnd();
+}
+
+
+void renderWindArrow() {
+    glPushMatrix();
+    glPushAttrib(GL_CURRENT_BIT);
+    glColor3f(1.0, 0.0, 0);
+    // Rotate so as to always point towards wind (rain) velocity x
+    // This means we must get the angle between our LOOK AT vector and the rain velocity
+    float dot = rain_velocity[X]*velocity[X] + rain_velocity[Z]*velocity[Z];
+    float mag1 = std::sqrt(rain_velocity[X]*rain_velocity[X] + rain_velocity[Z]*rain_velocity[Z]);
+    float mag2 = std::sqrt(velocity[X]*velocity[X]  + velocity[Z]*velocity[Z]);
+
+    float angle_arrow_rot = std::acos(dot / (mag1 * mag2)) / M_PI * 180;
+
+    std::cout << angle_arrow_rot << "\n";
+
+    if (velocity[X] > rain_velocity[X]) angle_arrow_rot = 360-angle_arrow_rot;
+
+    glTranslatef(0.8, -0.55, 0);
+    glScalef(0.07, 0.12, 1);
+    
+    glTranslatef(0, -1, 0);
+    glRotatef(angle_arrow_rot, 0, 0, 1);
+    glTranslatef(0, 1, 0);
+    renderArrow();
+    glPopAttrib();
+    glPopMatrix();
+
+}
+
 void showHUD() {
     static int starting_time = glutGet(GLUT_ELAPSED_TIME);
     static int previous = starting_time; 
@@ -903,6 +947,7 @@ void showHUD() {
 
     }
     
+
     // Background of HUD text and arrow in dark for better readability
     glPushMatrix();
     glPushAttrib(GL_CURRENT_BIT);
@@ -919,7 +964,7 @@ void showHUD() {
     glPopAttrib();
     glPopMatrix();
     
-
+    // Text
     glPushMatrix();
     glTranslatef(0.85, 0.92, 0);
     texto(0, 0, (char *) speed_ss.str().c_str(), BLANCO);
@@ -943,7 +988,6 @@ void showHUD() {
 
 void showBike() {
     glEnable(GL_BLEND);
-    setBikeTexture();
     glDepthMask(GL_FALSE);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
@@ -957,6 +1001,9 @@ void showBike() {
     glMatrixMode(GL_MODELVIEW);
     gluLookAt(0, 0, 0, 0, 0, -1, 0, 1, 0);
 
+    renderWindArrow();
+
+    setBikeTexture();
     if (camera_mode == PLAYER_VIEW) {
         float v0[3] = { -0.7, -1.05, 0 };
         float v1[3] = {  0.7, -1.05, 0 };
@@ -983,7 +1030,7 @@ void showBike() {
 
         quadtex(v0, v1, v2, v3);
     }
-
+    
     showHUD();
 
     glMatrixMode(GL_PROJECTION);
@@ -994,6 +1041,7 @@ void showBike() {
     glDisable(GL_CULL_FACE);
     glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);
+
 }
 
 /********************************* CALLBACKS *********************************/
