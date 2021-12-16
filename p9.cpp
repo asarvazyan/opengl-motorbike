@@ -169,11 +169,11 @@ static int num_sidelengths_passed = 1;
 bool atTreePosition(int z) {
     return outsideTunnel(z) && 
         z % Z_BETWEEN_TREES == 0 && 
-        //z - position[Z] > 0 && 
         z - position[Z] < 100; 
 }
 
 void renderTree(GLfloat* tree_position) {
+    glPushMatrix();
     setSupportMaterialAndTexture();
     drawCylindricalSupport(
             tree_position,
@@ -181,7 +181,7 @@ void renderTree(GLfloat* tree_position) {
             TREE_TRUNK_HEIGHT, 
             20
          );
-
+    glPopMatrix();
     glPushMatrix();
     glPushAttrib(GL_CURRENT_BIT);
     glColor3f(0.2, 1.0, 0.2);
@@ -606,17 +606,17 @@ void configureHeadlight() {
 }
 
 void showControls() {
-    std::cout << "Game controls:" << endl;
-    std::cout << "\tArrrows: control vehicle movement." << endl;
-    std::cout << "\t'S' or 's': toggle between solid and wire drawing modes." << endl;
-    std::cout << "\t'P' or 'p': toggle between player view and birds-eye view." << endl;
-    std::cout << "\t'L' or 'l': toggle between night and day." << endl;
-    std::cout << "\t'D' or 'd': toggle between active and inactive collision for the road." << endl;
-    std::cout << "\t'W' or 'w': toggle between clear and rainy weather." << endl;
-    std::cout << "\t'N' or 'n': toggle between fog and no fog." << endl;
-    std::cout << "\t'C' or 'c': toggle between HUD and no HUD." << endl;
-    std::cout << "\t'Y' or 'y': randomly change the wind (rain velocity). Effect only visible if rainy." << endl;
-    std::cout << "\tESC: exit." << endl;
+    std::cout << "Game controls:" << "\n";
+    std::cout << "\tArrrows: control vehicle movement." << "\n";
+    std::cout << "\t'S' or 's': toggle between solid and wire drawing modes." << "\n";
+    std::cout << "\t'P' or 'p': cycle between player view, third person view and birds-eye view." << "\n";
+    std::cout << "\t'L' or 'l': toggle between night and day." << "\n";
+    std::cout << "\t'D' or 'd': toggle between active and inactive collision for the road." << "\n";
+    std::cout << "\t'W' or 'w': toggle between clear and rainy weather." << "\n";
+    std::cout << "\t'N' or 'n': toggle between fog and no fog." << "\n";
+    std::cout << "\t'C' or 'c': toggle between HUD and no HUD." << "\n";
+    std::cout << "\t'Y' or 'y': randomly change the wind (rain velocity). Effect only visible if rainy." << "\n";
+    std::cout << "\tESC: exit." << "\n";
 }
 
 void renderGround(float sidelength) {
@@ -922,22 +922,22 @@ void showHUD() {
 
     glPushMatrix();
     glTranslatef(0.85, 0.92, 0);
-    //texto(0, 0, (char *) speed_ss.str().c_str(), BLANCO);
+    texto(0, 0, (char *) speed_ss.str().c_str(), BLANCO);
     glPopMatrix();
 
     glPushMatrix();
     glTranslatef(0.85, 0.87, 0);
-    //texto(0, 0, (char *) time_ss.str().c_str(), BLANCO);
+    texto(0, 0, (char *) time_ss.str().c_str(), BLANCO);
     glPopMatrix();
 
     glPushMatrix();
     glTranslatef(0.85, 0.82, 0);
-    //texto(0, 0, (char *) distance_ss.str().c_str(), BLANCO);
+    texto(0, 0, (char *) distance_ss.str().c_str(), BLANCO);
     glPopMatrix();
     
     glPushMatrix();
     glTranslatef(0.85, 0.77, 0);
-    //texto(0, 0, (char *) fps_ss.str().c_str(), BLANCO);
+    texto(0, 0, (char *) fps_ss.str().c_str(), BLANCO);
     glPopMatrix();
 }
 
