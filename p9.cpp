@@ -138,6 +138,7 @@ void showBike(void);
 static int draw_mode; // GL_LINE or GL_FILL
 static enum {PLAYER_VIEW, THIRD_PERSON_VIEW, BIRDS_EYE_VIEW} camera_mode;
 static enum {CLEAR, RAINFALL} weather_mode;
+static enum {AXIS_ON, AXIS_OFF} axis_mode;
 static enum {COLLISIONS, NO_COLLISIONS} collision_mode;
 static enum {HUD_ON, HUD_OFF} hud_mode;
 
@@ -635,12 +636,13 @@ void showControls() {
     std::cout << "\tArrrows: control vehicle movement." << "\n";
     std::cout << "\t'S' or 's': toggle between solid and wire drawing modes." << "\n";
     std::cout << "\t'P' or 'p': cycle between player view, third person view and birds-eye view." << "\n";
+    std::cout << "\t'Y' or 'y': randomly change the wind." << "\n";
     std::cout << "\t'L' or 'l': toggle between night and day." << "\n";
     std::cout << "\t'D' or 'd': toggle between active and inactive collision for the road." << "\n";
     std::cout << "\t'W' or 'w': toggle between clear and rainy weather." << "\n";
     std::cout << "\t'N' or 'n': toggle between fog and no fog." << "\n";
-    std::cout << "\t'C' or 'c': toggle between HUD and no HUD." << "\n";
-    std::cout << "\t'Y' or 'y': randomly change the wind (rain velocity). Effect only visible if rainy." << "\n";
+    std::cout << "\t'C' or 'c': show/hide HUD." << "\n";
+    std::cout << "\t'E' or 'e': show/hide axis vectors." << "\n";
     std::cout << "\tESC: exit." << "\n";
 }
 
@@ -1125,8 +1127,9 @@ void display() {
     if (weather_mode == RAINFALL) {
         updateAndRenderRain();
     }
-
-
+    
+    if (axis_mode == AXIS_ON)
+        ejes();
 
     if (hud_mode == HUD_ON) {
         showBike();
@@ -1242,6 +1245,11 @@ void onKey(unsigned char key, int x, int y) {
         case 'c':
         case 'C':
             hud_mode = (hud_mode == HUD_ON) ? HUD_OFF : HUD_ON;
+            break;
+
+        case 'e':
+        case 'E':
+            axis_mode = (axis_mode == AXIS_ON) ? AXIS_OFF : AXIS_ON;
             break;
 
         case 'n':
