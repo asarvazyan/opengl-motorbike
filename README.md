@@ -11,15 +11,15 @@ I also tried to have fun with the signs and based most of them on the movie They
 Currently the game supports the following functionalities, which can be controled by the user:
 
  - Arrows: control vehicle movement.
- - 'S' or 's': toggle between solid and wire drawing modes.
- - 'P' or 'p': cycle between player view, third person view and birds-eye view.
- - 'Y' or 'y': randomly change the wind.
- - 'L' or 'l': toggle between night and day.
- - 'D' or 'd': toggle between active and inactive collision for the road.
- - 'W' or 'w': toggle between clear and rainy weather.
- - 'N' or 'n': toggle between fog and no fog.
- - 'C' or 'c': show/hide HUD.
- - 'E' or 'e': show/hide axis vectors. (Only to be used as a reference for implementation purposes)
+ - **S/s**: toggle between solid and wire drawing modes.
+ - **P/p**: cycle between player view, third person view and birds-eye view.
+ - **Y/y**: randomly change the wind.
+ - **L/l**: toggle between night and day.
+ - **D/d**: toggle between active and inactive collision for the road.
+ - **W/w**: toggle between clear and rainy weather.
+ - **N/n**: toggle between fog and no fog.
+ - **C/c**: show/hide HUD.
+ - **E/e**: show/hide axis vectors. (Only to be used as a reference for implementation purposes)
 
 ## Are there any screenshots?
 Yes. Here are three screenshots showing most of the functionalities of the sim:
@@ -42,3 +42,6 @@ To compile:
 To run:
 
 ```$ ./motorbike```
+
+## Was it a pain to only use OpenGL instead of using a game engine?
+Yes. The most important lesson I learned was to respect the developers of game and physics engines, it's simply not a fun task for me to do, and I'd rather just use their tools to make cool stuff like this.
