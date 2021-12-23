@@ -10,7 +10,7 @@
 
 /********************************* CONSTANTS *********************************/
 // Window
-#define PROJECT_NAME "Videojuego de motochoque"
+#define PROJECT_NAME "OpenGL Motorbike"
 #define WINDOW_WIDTH 854
 #define WINDOW_HEIGHT 480
 
@@ -1191,11 +1191,6 @@ void onTimer(int interval) {
 
 
 	glutPostRedisplay();
-
-    std::stringstream title;
-	title << PROJECT_NAME << " " << speed << "m/s" ;
-	glutSetWindowTitle(title.str().c_str());
-
 	glutTimerFunc(interval, onTimer, interval);
 }
 
