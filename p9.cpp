@@ -633,7 +633,7 @@ void configureHeadlight() {
 
 void showControls() {
     std::cout << "Game controls:" << "\n";
-    std::cout << "\tArrrows: control vehicle movement." << "\n";
+    std::cout << "\tArrows: control vehicle movement." << "\n";
     std::cout << "\t'S' or 's': toggle between solid and wire drawing modes." << "\n";
     std::cout << "\t'P' or 'p': cycle between player view, third person view and birds-eye view." << "\n";
     std::cout << "\t'Y' or 'y': randomly change the wind." << "\n";
