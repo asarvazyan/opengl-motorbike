@@ -89,6 +89,7 @@ bool outsideTunnel(int);
 // Materials & Textures
 void loadTextures(void);
 void setSupportMaterialAndTexture(void);
+void setArrowMaterialAndTexture(void);
 void setSignMaterialAndTexture(int);
 void setLampMaterialAndTexture(void);
 void setGroundMaterialAndTexture(void);
@@ -158,6 +159,7 @@ GLuint tex_support, tex_lamp;
 GLuint tex_tunnel_wall, tex_tunnel_ceiling;
 GLuint tex_skyline;
 GLuint tex_bike_pov, tex_bike_bev, tex_bike_tpv;
+GLuint tex_arrow;
 
 // Random numbers
 // source: https://stackoverflow.com/questions/288739/generate-random-numbers-uniformly-over-an-entire-range
@@ -362,6 +364,9 @@ void loadTextures() {
 	glBindTexture(GL_TEXTURE_2D, tex_skyline);
 	loadImageFile((char*)"assets/background_skyline_long.jpg");
 
+    glGenTextures(1, &tex_arrow);
+	glBindTexture(GL_TEXTURE_2D, tex_arrow);
+	loadImageFile((char*)"assets/arrow.png");
 }
 
 float road_tracing(float u) {
@@ -402,6 +407,22 @@ void renderSignSupports(float z, float height) {
             height, 
             20
          );
+}
+
+void setArrowMaterialAndTexture() {
+    static GLfloat D[] = { 0.8, 0.8, 0.8 };
+    static GLfloat S[] = { 0.3, 0.3, 0.3 };
+    static float BE = 2;
+
+    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, D);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, S);
+    glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, BE);
+
+    glBindTexture(GL_TEXTURE_2D, tex_arrow);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 }
 
 void setSupportMaterialAndTexture() {
@@ -885,23 +906,17 @@ void setupLighting() {
 
 
 void renderArrow() {
-    glBegin(GL_TRIANGLE_STRIP);
-    glVertex3f(  0,  0, 0);
-    glVertex3f( -1, -1, 0);
-    glVertex3f(  1, -1, 0);
-    glEnd();
-
-    glBegin(GL_TRIANGLE_STRIP);
-    glVertex3f(  0,  0, 0);
-    glVertex3f( -0.7, -2, 0);
-    glVertex3f(  0.7, -2, 0);
-    glEnd();
+    quadtex(
+            new GLfloat[] {  0,  0, 0}, 
+            new GLfloat[] { -1,  0, 0},
+            new GLfloat[] { -1, -2, 0}, 
+            new GLfloat[] {  0, -2, 0},
+            1, 0, 1, 0, 1, 1);
 }
 
 void renderWindArrow() {
     glPushMatrix();
-    glPushAttrib(GL_CURRENT_BIT);
-    glColor3f(1.0, 0.0, 0);
+    setArrowMaterialAndTexture();
     // Rotate so as to always point towards wind (rain) velocity x
     // This means we must get the angle between our LOOK AT vector and the rain velocity
     float dot = rain_velocity[X]*velocity[X] + rain_velocity[Z]*velocity[Z];
@@ -918,8 +933,8 @@ void renderWindArrow() {
     glTranslatef(0, -1, 0);
     glRotatef(angle_arrow_rot, 0, 0, 1);
     glTranslatef(0, 1, 0);
+
     renderArrow();
-    glPopAttrib();
     glPopMatrix();
 }
 
@@ -1000,7 +1015,7 @@ void showBike() {
     glOrtho(-1, 1, -1, 1, -1, 1);
     glMatrixMode(GL_MODELVIEW);
     gluLookAt(0, 0, 0, 0, 0, -1, 0, 1, 0);
-
+    
     renderWindArrow();
 
     setBikeTexture();
