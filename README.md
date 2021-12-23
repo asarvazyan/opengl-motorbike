@@ -37,12 +37,8 @@ All you need to do is make sure the following libraries are installed correctly:
 
 To compile:
 
-```$ g++ p9.cpp -o p9.out -lGL -lGLU -lglut -lfreeimage```
+```$ g++ motorbike.cpp -o motorbike -lGL -lGLU -lglut -lfreeimage```
 
-To un:
+To run:
 
-```$ ./p9.o```
-
-
-### Why is the file called p9.c?
-Simple, this was the 9th practicum session, which was the one in which we had to do this project. Thus, p9.
+```$ ./motorbike```
