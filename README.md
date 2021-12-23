@@ -10,7 +10,7 @@ I also tried to have fun with the signs and based most of them on the movie They
 ## What can be done in-game?
 Currently the game supports the following functionalities, which can be controled by the user:
 
- - Arrows: control vehicle movement.
+ - **Arrows**: control vehicle movement.
  - **S/s**: toggle between solid and wire drawing modes.
  - **P/p**: cycle between player view, third person view and birds-eye view.
  - **Y/y**: randomly change the wind.
