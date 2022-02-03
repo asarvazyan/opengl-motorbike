@@ -42,6 +42,3 @@ To compile:
 To run:
 
 ```$ ./motorbike```
-
-## Was it a pain to only use OpenGL instead of using a game engine?
-Yes. The most important lesson I learned was to respect the developers of game and physics engines, it's simply not a fun task for me to do, and I'd rather just use their tools to make cool stuff like this.
